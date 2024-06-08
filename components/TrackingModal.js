@@ -1,0 +1,108 @@
+import React from "react";
+import { View, TouchableOpacity, Text, Button, Alert } from "react-native";
+import Modal from "react-native-modal";
+
+
+const TrackingModal = ({
+  trackingModalOpen,
+  setTrackingModalOpen,
+  isTracking,
+  setIsTracking,
+  timeElapsed, 
+  setTimeElapsed,
+  setAccData,
+  setGyroData,
+  predict,
+  predLabel,
+  predReps
+}) => {
+
+  const Items = Array.from(Array(50).keys());
+
+  const handleStartStop = () => {
+    if (isTracking) {
+      predict();
+    }
+    setIsTracking(prevIsTracking => !prevIsTracking);
+  };
+
+
+  return (
+    <Modal // Tracking Modal zum Starten und Stoppen der Datenerfassung
+      onBackButtonPress={() => {
+        setTrackingModalOpen(false),
+        //   setReps(0),
+        //   setLabel(""),
+         setGyroData([]),
+          setTimeElapsed(0),
+        setAccData([]);
+      }}
+      style={{ alignItems: "center" }}
+      isVisible={trackingModalOpen}
+      animationIn="slideInUp"
+      backdropColor={"#132224"}
+      animationOut="slideOutDown"
+      onDismiss={() => {
+         setIsTracking(false), setTimeElapsed(0)
+      }}
+      onRequestClose={() => {
+        setTrackingModalOpen(false),
+         setIsTracking(false)
+       setTimeElapsed(0),
+        setGyroData([]), setAccData([]);
+      }}
+    >
+      <View
+        style={{
+          backgroundColor: "white",
+          margin: "4%",
+          padding: "4%",
+          borderRadius: 10,
+          width: "100%",
+          minHeight: "50%",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => handleStartStop()}
+          style={{
+            width: 100,
+            height: 100,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "red",
+            borderRadius: 20,
+          }}
+        >
+          <Text style={{ fontSize: 28, color: "white" }}>
+            {isTracking ? "STOP" : "START"}{" "}
+          </Text>
+        </TouchableOpacity>
+        <Text style={{color:"black"}}>Zeit: {timeElapsed} Sekunden</Text> 
+        {!isTracking && timeElapsed != 0 ? (
+          <View
+            style={{
+              flex: 1,
+              width: "100%",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{color:"black", fontSize:25}}>MY PREDICTIONS:</Text>
+            <Text style={{color:"black", fontSize:25}}>LABEL: {predLabel}</Text>
+            <Text style={{color:"black", fontSize:25}}>REPS: {predReps}</Text>
+            <View style={{ width: 150 }}>
+              <Button title="SAVE" onPress={() => {}} color="blue" />
+            </View>
+          </View>
+        ) : (
+          <View />
+        )}
+        
+      </View>
+    </Modal>
+  );
+};
+
+export default TrackingModal;
