@@ -14,7 +14,10 @@ const TrackingModal = ({
   setGyroData,
   predict,
   predLabel,
-  predReps
+  predReps,
+  setPredLabel,
+  setPredReps,
+  setRecordedData
 }) => {
 
   const Items = Array.from(Array(50).keys());
@@ -22,20 +25,35 @@ const TrackingModal = ({
   const handleStartStop = () => {
     if (isTracking) {
       predict();
+     // onClose()
     }
     setIsTracking(prevIsTracking => !prevIsTracking);
   };
+
+  const onClose = ()=> {
+    console.log("RESETTING EVERXXTHING")
+    setTrackingModalOpen(false),
+    setIsTracking(false)
+    setGyroData([]),
+    setTimeElapsed(0),
+    setAccData([]),
+    setPredLabel(""),
+    setPredReps(0),
+    setRecordedData({
+      accX: [],
+      accY: [],
+      accZ: [],
+      gyroX: [],
+      gyroY: [],
+      gyroZ: [],
+    });
+  }
 
 
   return (
     <Modal // Tracking Modal zum Starten und Stoppen der Datenerfassung
       onBackButtonPress={() => {
-        setTrackingModalOpen(false),
-        //   setReps(0),
-        //   setLabel(""),
-         setGyroData([]),
-          setTimeElapsed(0),
-        setAccData([]);
+        onClose()
       }}
       style={{ alignItems: "center" }}
       isVisible={trackingModalOpen}
@@ -43,13 +61,10 @@ const TrackingModal = ({
       backdropColor={"#132224"}
       animationOut="slideOutDown"
       onDismiss={() => {
-         setIsTracking(false), setTimeElapsed(0)
+      onClose()
       }}
       onRequestClose={() => {
-        setTrackingModalOpen(false),
-         setIsTracking(false)
-       setTimeElapsed(0),
-        setGyroData([]), setAccData([]);
+        onClose()
       }}
     >
       <View
@@ -79,7 +94,7 @@ const TrackingModal = ({
             {isTracking ? "STOP" : "START"}{" "}
           </Text>
         </TouchableOpacity>
-        <Text style={{color:"black"}}>Zeit: {timeElapsed} Sekunden</Text> 
+        <Text style={{color:"black"}}>Zeit: {timeElapsed} in Sekunden</Text> 
         {!isTracking && timeElapsed != 0 ? (
           <View
             style={{
@@ -93,7 +108,7 @@ const TrackingModal = ({
             <Text style={{color:"black", fontSize:25}}>LABEL: {predLabel}</Text>
             <Text style={{color:"black", fontSize:25}}>REPS: {predReps}</Text>
             <View style={{ width: 150 }}>
-              <Button title="SAVE" onPress={() => {}} color="blue" />
+              <Button title="SAVE" onPress={() => {onClose()}} color="blue" />
             </View>
           </View>
         ) : (

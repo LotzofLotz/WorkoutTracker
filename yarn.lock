@@ -2692,6 +2692,11 @@ file-entry-cache@^6.0.1:
   dependencies:
     flat-cache "^3.0.4"
 
+fili@^2.0.3:
+  version "2.0.3"
+  resolved "https://registry.npmjs.org/fili/-/fili-2.0.3.tgz"
+  integrity sha512-NW/EY++EMP9f4mSpVCjg5PJnAkkxzh170My+R18sh4CSXu3Puxw3Cs4aQmXoUtNg1EonZmvmR5TLcKEJtX5hQg==
+
 fill-range@^7.1.1:
   version "7.1.1"
   dependencies:
