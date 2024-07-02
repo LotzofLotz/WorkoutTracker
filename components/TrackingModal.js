@@ -1,6 +1,7 @@
 import React from "react";
 import { View, TouchableOpacity, Text, Button, Alert } from "react-native";
 import Modal from "react-native-modal";
+import ChartComponent from "./ChartComponent";
 
 
 const TrackingModal = ({
@@ -17,7 +18,9 @@ const TrackingModal = ({
   predReps,
   setPredLabel,
   setPredReps,
-  setRecordedData
+  setRecordedData, 
+  chartData, 
+  peaks
 }) => {
 
   const Items = Array.from(Array(50).keys());
@@ -74,7 +77,7 @@ const TrackingModal = ({
           padding: "4%",
           borderRadius: 10,
           width: "100%",
-          minHeight: "50%",
+          minHeight: "60%",
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -104,6 +107,9 @@ const TrackingModal = ({
               alignItems: "center",
             }}
           >
+            <View style={{flex:1, justifyContent:"center", alignItems:"center"}}>
+            <ChartComponent chartData={chartData} peaks={peaks}/>
+            </View>
             <Text style={{color:"black", fontSize:25}}>MY PREDICTIONS:</Text>
             <Text style={{color:"black", fontSize:25}}>LABEL: {predLabel}</Text>
             <Text style={{color:"black", fontSize:25}}>REPS: {predReps}</Text>

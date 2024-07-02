@@ -1,17 +1,10 @@
 
-
 import React, {useEffect, useState} from 'react';
-import type {PropsWithChildren} from 'react';
 import {
   TouchableOpacity,
   SafeAreaView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
-  View,
- Button 
 } from 'react-native';
 import { loadTensorflowModel } from 'react-native-fast-tflite';
 import { accelerometer, gyroscope, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
@@ -19,9 +12,8 @@ import { Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 import TrackingModal from './components/TrackingModal';
 const { sgg } = require('ml-savitzky-golay-generalized');
-var Fili = require('fili');
-var iirCalculator = new Fili.CalcCascades();
 import { findPeaks } from './components/FindPeaks';
+
 
 
 function App(): React.JSX.Element {
@@ -42,35 +34,17 @@ function App(): React.JSX.Element {
     gyroY: [] as number[],
     gyroZ: [] as number[],
   });
-  // const [normalizedData, setNormalizedData] = useState<number[]>([]);
-  // const [peaks, setPeaks] = useState<number[]>([]);
-  // const [extractedData, setExtractedData] = useState<any>({});
   const [timeElapsed, setTimeElapsed]= useState<number>(0)
+  const [peaks, setPeaks] = useState<number[]>([]);
+  const [chartData, setChartData] = useState<number[]>([])
 
-  const iirCalculator = new Fili.CalcCascades();
-  const butterworthFilterCoeffs = iirCalculator.lowpass({
-      order: 4, // 4. Ordnung (Butterworth)
-      characteristic: 'butterworth',
-      Fs: 10, // Abtastrate in Hz
-      Fc: 1, // Grenzfrequenz in Hz
-  });
+  const [accData, setAccData] = useState<any[]>([]);
+  const [gyroData, setGyroData] = useState<any[]>([]);
+  const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null);
   
-  // Erzeugung des Filters
-  const iirFilter = new Fili.IirFilter(butterworthFilterCoeffs);
-  
-  // Eingabedaten
-  const inputSignal = [9.877067581363354, 9.9339825491859, 9.84251462154419, 10.354257534969516, 13.373713997598962, 9.926204295547642, 7.52423678835273, 8.80797202411695, 9.110746947497068, 9.04674433525003, 7.6216820560763, 9.767674343762302, 10.972864173387153, 12.044192586381547, 10.311767493624078, 9.779259887718824, 10.186689479640906, 13.445548472549364, 11.659811531785278, 7.232351246614539, 8.326743255249516, 8.691449780701179, 9.844374201414142, 9.586148221703843, 8.270785998889648, 8.213915097631686, 9.084737169890397, 11.059256723805966, 12.526292243050815, 10.521095868750852, 9.831481482019694, 10.098919690242962, 14.811084571194218, 10.242821614332174, 6.503457763867406, 8.796358410502135, 8.742400099395326, 7.729124458719839, 8.410217968879925, 9.558874710653493, 10.871951309753682, 12.28505208468855, 10.64756251498731, 9.511323614278714, 9.716664448580524, 9.4622972516373, 9.698591244496884, 9.945709897037451, 9.838054911262176, 9.902449329934491, 9.720841201966644, 9.818233615572913, 10.098537732642635, 9.764930274377393, 9.934020191430031, 10.096486041544484, 9.261850515450758];
-  
-  // Anwendung des Filters auf die Daten
-  const outputSignal = iirFilter.simulate(inputSignal);
-  
-  console.log(":::::::", outputSignal);
 
-// Filter the data
-//const filteredData = iirFilter.simulate(data);
-
-// Print the smoothed data
-
+ 
+console.log("recorded Data: ",  recordedData)
 
 
 
@@ -78,7 +52,8 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const loadModel = async () => {
       try {
-        const loadedModel = await loadTensorflowModel(require('./android/app/src/main/assets/model.tflite'));
+         //const loadedModel = await loadTensorflowModel(require('./android/app/src/main/assets/model.tflite'));
+        const loadedModel = await loadTensorflowModel(require('./android/app/src/main/assets/newSplitModel.tflite')); //besseres model, aber zeigt immer nur squat 
         setModel(loadedModel);
         console.log('Model loaded successfully');
       } catch (error) {
@@ -88,6 +63,7 @@ function App(): React.JSX.Element {
       }
     };
     loadModel();
+
   }, []);
 
 
@@ -102,7 +78,7 @@ function App(): React.JSX.Element {
       const startTime = Date.now() - timeElapsed; // Startzeitpunkt unter Berücksichtigung der bereits verstrichenen Zeit
       interval = setInterval(() => {
         setTimeElapsed(Date.now() - startTime);
-      }, 100); // Zeit alle 1 Sekunde aktualisieren
+      }, 1000); // Zeit alle 1 Sekunde aktualisieren
       setUpdateIntervalForType(SensorTypes.accelerometer, 100); // Update every 100ms
       setUpdateIntervalForType(SensorTypes.gyroscope, 100); // Update every 100ms
 
@@ -149,8 +125,8 @@ function App(): React.JSX.Element {
   }, [isTracking]);
 
 
-
-  function padSequence(seq: number[], maxLength: number): number[] {
+// pads the single rep sequence to have a uniform length (that of the longest rep recorded)
+function padSequence(seq: number[], maxLength: number): number[] {
   const padded = new Array(maxLength).fill(0);
   for (let i = 0; i < seq.length && i < maxLength; i++) {
       padded[i] = seq[i];
@@ -182,105 +158,10 @@ const prepareDataForModel = (paddedRep: {
   }
   return new Float32Array(features);
 };
-function findBase(data: number[], peakIndex: number, direction: number): number {
-  let baseValue = data[peakIndex];
-  let index = peakIndex;
 
-  while (
-    index >= 0 &&
-    index < data.length &&
-    data[index] <= baseValue
-  ) {
-    baseValue = data[index];
-    index += direction;
-  }
 
-  return baseValue;
-}
-
-//WORKING VERSION
-// function findPeaks(
-//   data: number[],
-//   height = [-0.4, 0],
-//   prominence = 0.2,
-//   distance = 6,
-//   width = 2
-// ): number[] {
-//   const invertedData = data.map((value) => -value);
-//   console.log(invertedData)
-//   const peaks = [];
-//   const length = invertedData.length;
-
-//   for (let i = 1; i < length - 1; i++) {
-//     if (
-//       invertedData[i] > invertedData[i - 1] &&
-//       invertedData[i] > invertedData[i + 1]
-//     ) {
-//       const peakValue = invertedData[i];
-//       if (peakValue >= height[0] && peakValue <= height[1]) {
-//         // Check prominence
-//         const leftBase = findBase(invertedData, i, -1);
-//         const rightBase = findBase(invertedData, i, 1);
-//         const peakProminence = Math.min(
-//           peakValue - leftBase,
-//           peakValue - rightBase
-//         );
-//         if (peakProminence >= prominence) {
-//           peaks.push(i);
-//         }
-//       }
-//     }
-//   }
-
-//   // Apply distance constraint
-//   const filteredPeaks = [];
-//   let lastPeak = -distance - 1;
-
-//   for (const peak of peaks) {
-//     if (peak - lastPeak >= distance) {
-//       filteredPeaks.push(peak);
-//       lastPeak = peak;
-//     }
-//   }
-
-//   return filteredPeaks;
-// }
-
-// function findPeaks(
-//     data: number[],
-//     height = [-0.4, 0],
-//     prominence = 0.2,
-//     distance = 5,
-//     width = 2
-//   ) {
-//     const invertedData = data.map((value) => -value);
-//     const peaks = [];
-//     const length = invertedData.length;
-  
-//     for (let i = 1; i < length - 1; i++) {
-//       if (
-//         invertedData[i] > invertedData[i - 1] &&
-//         invertedData[i] > invertedData[i + 1]
-//       ) {
-//         const peakValue = invertedData[i];
-//         if (peakValue >= height[0] && peakValue <= height[1]) {
-//           peaks.push(i);
-//         }
-//       }
-//     }
-  
-//     // Apply distance constraint
-//     const filteredPeaks = peaks.filter((peak, index, arr) => {
-//       if (index === 0) return true;
-//       return peak - arr[index - 1] >= distance;
-//     });
-  
-//     return filteredPeaks;
-//   }
-
-  
+  //filter method, adjusts the windowsize, if the length of the data isnt as big
   const applySavitzkyGolayFilter = (data: number[], windowSize: number, polynomialOrder: number) => {
-    // console.log("SAVITZKY DATA::", data)
     if (data.length < windowSize) {
       console.warn('Data length is less than window size, reducing window size to match data length.');
       windowSize = data.length; // Fenstergröße auf Datenlänge reduzieren
@@ -294,10 +175,45 @@ function findBase(data: number[], peakIndex: number, direction: number): number 
     }
   };
 
-   const calculateMagnitude = (x: number, y: number, z: number) => {
-    return Math.sqrt(x ** 2 + y ** 2 + z ** 2);
+
+  type AxisRange = {
+    axis: 'y' | 'magnitude';
+    range: number;
+  };
+  
+  // Funktion zum Berechnen der Range
+  function calculateRange(data: number[]): number {
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    return max - min;
+  }
+  
+  // Funktion zum Auswählen der besten Achse
+  function selectBestAxis(yData: number[], magnitudeData: number[]): 'y' | 'magnitude' {
+    const yRange = calculateRange(yData);
+    const magnitudeRange = calculateRange(magnitudeData);
+  
+    const ranges: AxisRange[] = [
+      { axis: 'y', range: yRange },
+      { axis: 'magnitude', range: magnitudeRange }
+    ];
+  
+    ranges.sort((a, b) => b.range - a.range);
+    return ranges[0].axis;
+  }
+
+  
+
+  //combines x,y,z direction of the accelerometer
+  //  const calculateMagnitude = (x: number, y: number, z: number) => {
+  //   return Math.sqrt(x ** 2 + y ** 2 + z ** 2);
+  // };
+  const calculateMagnitude = (x: number[], y: number[], z: number[]): number[] => {
+    return x.map((_, index) => Math.sqrt(x[index] ** 2 + y[index] ** 2 + z[index] ** 2));
   };
 
+
+ //function to normalize the data
     const minMaxScaler = (data: number[]) => {
     const min = Math.min(...data);
     const max = Math.max(...data);
@@ -305,145 +221,62 @@ function findBase(data: number[], peakIndex: number, direction: number): number 
   };
 
 
-  function findLocalMaxima(xs: number[]): number[] {
-    let maxima: number[] = [];
-    // iterate through all points and compare direct neighbors
-    for (let i = 1; i < xs.length - 1; ++i) {
-        if (xs[i] > xs[i - 1] && xs[i] > xs[i + 1]) {
-            maxima.push(i);
-        }
-    }
-    return maxima;
-}
-
-function filterByHeight(indices: number[], xs: number[], height: number): number[] {
-  return indices.filter(i => xs[i] > height);
-}
-
-type Pair = [number, number];
-
-// Combine index and value as pair
-const decor = (v: number, i: number): Pair => [v, i];
-
-// Remove value from pair
-const undecor = (pair: Pair): number => pair[1];
-
-// Sort array indices by values
-const argsort = (arr: number[]): number[] => arr.map(decor).sort((a, b) => a[0] - b[0]).map(undecor);
-
-// Filter indices based on distance
-function filterByDistance(indices: number[], xs: number[], dist: number): number[] {
-    let toRemove = Array(indices.length).fill(false);
-    let heights = indices.map(i => xs[i]);
-    let sortedIndexPositions = argsort(heights).reverse();
-
-    for (let idx of sortedIndexPositions) {
-        if (toRemove[idx]) continue;
-        for (let j = 0; j < indices.length; j++) {
-            if (j !== idx && Math.abs(indices[j] - indices[idx]) < dist) {
-                toRemove[j] = true;
-            }
-        }
-    }
-
-    return indices.filter((_, i) => !toRemove[i]);
-}
-
-function filterMaxima(indices: number[], xs: number[], distance?: number, height?: number): number[] {
-  let newIndices = indices;
-  if (height !== undefined) {
-      newIndices = filterByHeight(indices, xs, height);
-  }
-  if (distance !== undefined) {
-      newIndices = filterByDistance(newIndices, xs, distance);
-  }
-  return newIndices;
-}
-
-function minimalFindPeaks(xs: number[], distance?: number, height?: number): number[] {
-  let indices = findLocalMaxima(xs);
-  return filterMaxima(indices, xs, distance, height);
-}
-
-
 const predict = ()=> {
-  const combinedData = recordedData.accX.map((x, i) =>
-    calculateMagnitude(x, recordedData.accY[i], recordedData.accZ[i])
-  );
-console.log("COMBINED DATA:", combinedData)
-
-  const smoothedData = applySavitzkyGolayFilter(combinedData,9,3)
-
-
+  // const combinedData = recordedData.accX.map((x, i) =>
+  //   calculateMagnitude(x, recordedData.accY[i], recordedData.accZ[i])
+  // ); 
  
-  // const filteredData = iirFilter.simulate(combinedData);
-  // console.log("BUTTERWORTH DATA:::::", filteredData)
-  const normalizedData = minMaxScaler(smoothedData);
-  console.log("SAVGOL:::mit 4 ", smoothedData)
+  const magnitude = calculateMagnitude(recordedData.accX, recordedData.accY, recordedData.accZ)
+  const bestAxis = selectBestAxis(magnitude, recordedData.accY)
+  console.log("BEST AXIS:", bestAxis)
+  let peaks: number[] = [];
 
-
-  //console.log("ALL PEAKS", findLocalMaxima(smoothedData))
-  // const normalizedButter = minMaxScaler(filteredData)
-  // console.log("BUTTER:::", normalizedButter)
-  //console.log("normalized data: ", normalizedData)
-
-      //setNormalizedData(normalizedData);
-      const invData = normalizedData.map((value) => -value); 
-      const peaks = findPeaks(invData,7,-0.4) ;
-      const peaks2 = findPeaks(normalizedData,7,0.4)
-      console.log("Minimas:", peaks)
-      console.log("actual Peaks ", peaks2)
-      // const minPeaks = minimalFindPeaks(invData, 5, -0.5)
-      // console.log("MIN PEAKS:", minPeaks)
+  if(bestAxis == "y"){
+    const smoothedY = applySavitzkyGolayFilter(recordedData.accY,9,3)
+    const normedY = minMaxScaler(smoothedY)
+    setChartData(normedY)
+   console.log("normedY:", normedY)
+    const yData = normedY.map((value)=> normedY[0]<0.5? -value: value)
+    peaks = findPeaks(yData,9, -0.2,0.5)
+    setPeaks(peaks)
+    setPredReps(peaks.length-1)
+    console.log("Accy peaks:", peaks)
+  }
+  else{
+  const smoothedMag = applySavitzkyGolayFilter(magnitude, 9,3)
+  const normedMag = minMaxScaler(smoothedMag)
+  console.log("normedMag:", normedMag)
+  setChartData(normedMag)
+  //Rep == Valley or Hill? Maxima->Maxima or Minima->Minima? 
+  const magData = normedMag.map((value)=> normedMag[0]<0.5? -value: value)
+  peaks= findPeaks(magData,9, -0.2,0.5)
+  setPredReps(peaks.length-1)
+  setPeaks(peaks)
+  console.log("MAGNITUDE peaks: ", peaks)}
   
-      const smoothedAccX = applySavitzkyGolayFilter(recordedData.accX, 9, 2);
-      const smoothedAccY = applySavitzkyGolayFilter(recordedData.accY, 9, 2);
-      const smoothedAccZ = applySavitzkyGolayFilter(recordedData.accZ, 9, 2);
-      const smoothedGyroX = applySavitzkyGolayFilter(recordedData.gyroX, 9, 2);
-      const smoothedGyroY = applySavitzkyGolayFilter(recordedData.gyroY, 9, 2);
-      const smoothedGyroZ = applySavitzkyGolayFilter(recordedData.gyroZ, 9, 2);
-
-      const normalizedAccX = minMaxScaler(smoothedAccX);
-      const normalizedAccY = minMaxScaler(smoothedAccY);
-      const normalizedAccZ = minMaxScaler(smoothedAccZ);
-      const normalizedGyroX = minMaxScaler(smoothedGyroX);
-      const normalizedGyroY = minMaxScaler(smoothedGyroY);
-      const normalizedGyroZ = minMaxScaler(smoothedGyroZ);
+  
+ 
     
       //setPeaks(peaks);
       const extractedData: any = {};
-      for (let i = 0; i < peaks.length - 1; i++) {
+      for (let i = 0; i < peaks.length-1 ; i++) {
         const start = peaks[i];
         const end = peaks[i + 1];
 
-        // const segmentAccX = recordedData.accX.slice(start, end);
-        // const segmentAccY = recordedData.accY.slice(start, end);
-        // const segmentAccZ = recordedData.accZ.slice(start, end);
-        // const segmentGyroX = recordedData.gyroX.slice(start, end);
-        // const segmentGyroY = recordedData.gyroY.slice(start, end);
-        // const segmentGyroZ = recordedData.gyroZ.slice(start, end);
+        const segmentAccX = recordedData.accX.slice(start,end)
+        const segmentAccY = recordedData.accY.slice(start,end)
+        const segmentAccZ = recordedData.accZ.slice(start,end)
+        const segmentGyroX = recordedData.gyroX.slice(start,end)
+        const segmentGyroZ = recordedData.gyroZ.slice(start,end)
+        const segmentGyroY = recordedData.gyroY.slice(start,end)
 
-        // const processSegment = (segment: number[]) => {
-        //   const windowSize = Math.min(segment.length, 5); // Nutze die maximale mögliche Fenstergröße
-        //   const smoothedSegment = applySavitzkyGolayFilter(segment, windowSize, 2);
-        //   return minMaxScaler(smoothedSegment);
-        // };
-
-        // extractedData[`Rep${i + 1}`] = {
-        //   accX: processSegment(segmentAccX),
-        //   accY: processSegment(segmentAccY),
-        //   accZ: processSegment(segmentAccZ),
-        //   gyroX: processSegment(segmentGyroX),
-        //   gyroY: processSegment(segmentGyroY),
-        //   gyroZ: processSegment(segmentGyroZ),
-        // };
-      //}
-      const segmentAccX = normalizedAccX.slice(start, end);
-      const segmentAccY = normalizedAccY.slice(start, end);
-      const segmentAccZ = normalizedAccZ.slice(start, end);
-      const segmentGyroX = normalizedGyroX.slice(start, end);
-      const segmentGyroY = normalizedGyroY.slice(start, end);
-      const segmentGyroZ = normalizedGyroZ.slice(start, end);
+  
+      // const segmentAccX = normalizedAccX.slice(start, end);
+      // const segmentAccY = normalizedAccY.slice(start, end);
+      // const segmentAccZ = normalizedAccZ.slice(start, end);
+      // const segmentGyroX = normalizedGyroX.slice(start, end);
+      // const segmentGyroY = normalizedGyroY.slice(start, end);
+      // const segmentGyroZ = normalizedGyroZ.slice(start, end);
   
       extractedData[`Rep${i + 1}`] = {
         accX: segmentAccX,
@@ -454,7 +287,48 @@ console.log("COMBINED DATA:", combinedData)
         gyroZ: segmentGyroZ,
       };
     }
+ // const smoothedData = applySavitzkyGolayFilter(recordedData.accY,9,3)
+  // const invData = smoothedData.map((value: number)=> -value)
+  // const peaks=  findPeaks(invData, 9, -0.5, 0.7)
+  // console.log("smoothedData", smoothedData),98
+  // console.log("peaks:", peaks)
+
+  // const smoothedData = applySavitzkyGolayFilter(combinedData,9,3)
+  //const smoothedData2 = applySavitzkyGolayFilter(combinedData,13,3)
   
+  //console.log("smoothed data size 13", smoothedData2)
+  // const normalizedData = minMaxScaler(smoothedData);
+  // console.log("NORMALIZED COMBINED DATA:", normalizedData)
+  //  const example = [0.618040552629508, 0.4112559027681461, 0.2954085394554974, 0.2564787141747587, 0.28044667840912585, 0.39911933221290186, 0.46868903224850705, 0.47527006502225094, 0.554644578804998, 0.7314845010462436, 0.824875801981758, 0.8029570813246576, 0.7442211017394238, 0.7225404858546401, 0.5172465222624764, 0.275804635467232, 0.22029520011953066, 0.21117469513555098, 0.15825709321415982, 0.09155657445049008, 0.09765298494403643, 0.23046458274302006, 0.24353354696938964, 0.2697092641335558, 0.35952558238030846, 0.41618706059430677, 0.4811076869008306, 0.5264662870371414, 0.461387907305928, 0.3815258927298769, 0.45273848239149533, 0.4961402099040545, 0.5596586281829015, 0.5918996999382564, 0.6280871797467613, 0.6085006815818863, 0.47211517408564424, 0.4141781047759924, 0.5710177825424325, 0.7179894309015712, 0.8698452683617006, 0.9708370102841374, 1, 0.816571245786882, 0.6234256992407131, 0.4463863444475735, 0.25959746291671754, 0.17160980852283136, 0.17222443063777304, 0.17040910777618964, 0.11736772060263827, 0.009798253174203705, 0, 0.10201989632792854, 0.16105644838648492, 0.2661701860009938, 0.37878411957273556, 0.37039782716004366, 0.4262998979395553, 0.4712787609308802, 0.44245038991902635, 0.46438984498429137, 0.45874211631013484, 0.43874478529209815, 0.5147505528244011, 0.5225636727724808, 0.5233872233553046, 0.5073892634895341, 0.4313558995751066, 0.42742571777795785, 0.43083119888874205, 0.4454900400119684, 0.467740497577581, 0.49392082801552606]
+  //   const invData = example.map((value)=> -value)
+  //   const peaks = findPeaks(invData,7,-0.4, 0.3) ;
+  //   const peaks2 = findPeaks(invData,7,-0.4)
+  //   console.log("PEAKS MIT 0.3 ", peaks)  
+  //   console.log("PEAKS OHNE::::", peaks2)
+   
+   // const invData = normalizedData.map((value) => -value); 
+      // const peaks = findPeaks(invData,7,-0.4, 0.3) ;
+      // const peaks2 = findPeaks(normalizedData,7,0.4)
+      // console.log("Minimas:", peaks)
+      // console.log("actual Peaks ", peaks2)
+  
+      // const smoothedAccX = applySavitzkyGolayFilter(recordedData.accX, 9, 2);
+      // const smoothedAccY = applySavitzkyGolayFilter(recordedData.accY, 9, 2);
+      // const smoothedAccZ = applySavitzkyGolayFilter(recordedData.accZ, 9, 2);
+      // const smoothedGyroX = applySavitzkyGolayFilter(recordedData.gyroX, 9, 2);
+      // const smoothedGyroY = applySavitzkyGolayFilter(recordedData.gyroY, 9, 2);
+      // const smoothedGyroZ = applySavitzkyGolayFilter(recordedData.gyroZ, 9, 2);
+
+      // const normalizedAccX = minMaxScaler(smoothedAccX);
+      // const normalizedAccY = minMaxScaler(smoothedAccY);
+      // const normalizedAccZ = minMaxScaler(smoothedAccZ);
+      // const normalizedGyroX = minMaxScaler(smoothedGyroX);
+      // const normalizedGyroY = minMaxScaler(smoothedGyroY);
+      // const normalizedGyroZ = minMaxScaler(smoothedGyroZ);
+
+      // console.log("NORMALIZED ACCY", normalizedAccY)
+    console.log("EXTRACTED DATA:", extractedData)
+
     
       //setExtractedData(extractedData);
       const repCount =  Object.keys(extractedData).length;
@@ -480,7 +354,8 @@ console.log("COMBINED DATA:", combinedData)
         gyroY: padSequence(rep1.gyroY, maxLength),
         gyroZ: padSequence(rep1.gyroZ, maxLength)
       };
-      const preparedData = prepareDataForModel(paddedRep, 51); // 51 hier abhängig von der shape des tensors im training
+      const preparedData = prepareDataForModel(paddedRep, 51); 
+      console.log("PREPARED DATA:::::", preparedData)// 51 hier abhängig von der shape des tensors im training
       const runInference = async () => {
         if (!model) return;
         try {
@@ -501,7 +376,7 @@ console.log("COMBINED DATA:", combinedData)
 
   return (
     <SafeAreaView style={styles.container}>
-         <TrackingModal
+      <TrackingModal
         trackingModalOpen={trackingModalOpen}
         setTrackingModalOpen={setTrackingModalOpen}
         isTracking={isTracking}
@@ -516,6 +391,8 @@ console.log("COMBINED DATA:", combinedData)
         setPredReps={setPredReps}
         setPredLabel={setPredLabel}
         setRecordedData={setRecordedData}
+        chartData={chartData}
+        peaks={peaks}
       />
       <TouchableOpacity
         onPress={() => setTrackingModalOpen(true)}
