@@ -11,8 +11,6 @@ const TrackingModal = ({
   setIsTracking,
   timeElapsed, 
   setTimeElapsed,
-  setAccData,
-  setGyroData,
   predict,
   predLabel,
   predReps,
@@ -23,10 +21,11 @@ const TrackingModal = ({
   peaks
 }) => {
 
-  const Items = Array.from(Array(50).keys());
+  // const Items = Array.from(Array(50).keys());
 
   const handleStartStop = () => {
     if (isTracking) {
+      console.log("starting to predict ...")
       predict();
      // onClose()
     }
@@ -34,7 +33,6 @@ const TrackingModal = ({
   };
 
   const onClose = ()=> {
-    console.log("RESETTING EVERXXTHING")
     setTrackingModalOpen(false),
     setIsTracking(false)
     setGyroData([]),
@@ -107,7 +105,7 @@ const TrackingModal = ({
               alignItems: "center",
             }}
           >
-            <View style={{flex:1, justifyContent:"center", alignItems:"center"}}>
+            <View style={{flex:1,  justifyContent:"center", alignItems:"center"}}>
             <ChartComponent chartData={chartData} peaks={peaks}/>
             </View>
             <Text style={{color:"black", fontSize:25}}>MY PREDICTIONS:</Text>
@@ -120,8 +118,8 @@ const TrackingModal = ({
         ) : (
           <View />
         )}
-        
-      </View>
+       
+      </View> 
     </Modal>
   );
 };

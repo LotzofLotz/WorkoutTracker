@@ -47,7 +47,7 @@ const hidePointsAtIndex = Object.values(chartData)
   }
 
   return (
-    <View style={{ padding: 10, flex: 1 }}>
+    <View style={{ padding: 0, flex: 1 }}>
          <LineChart
         data={{
           datasets: [
@@ -59,7 +59,7 @@ const hidePointsAtIndex = Object.values(chartData)
             }
           ]
         }}
-        width={screenWidth - 20} // from react-native
+        width={screenWidth - 40} // from react-native
         height={220}
         chartConfig={chartConfig}
         bezier

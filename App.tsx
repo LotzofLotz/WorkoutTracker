@@ -13,6 +13,9 @@ import { map } from 'rxjs/operators';
 import TrackingModal from './components/TrackingModal';
 const { sgg } = require('ml-savitzky-golay-generalized');
 import { findPeaks } from './components/FindPeaks';
+import * as numeric from 'numeric';
+const {Matrix} = require('ml-matrix');
+const {PCA} = require('ml-pca');
 
 
 
@@ -20,12 +23,9 @@ function App(): React.JSX.Element {
   const [trackingModalOpen, setTrackingModalOpen] = useState<boolean>(false)
   const [model, setModel] = useState<any>(null);
   const [isTracking,setIsTracking] = useState<boolean>(false)
-  // const [prediction, setPrediction] = useState<any>(null);
   const [predReps, setPredReps] = useState<number>(0)
   const [predLabel, setPredLabel] = useState<string>("")
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [accelerometerData, setAccelerometerData] = useState({ x: 0, y: 0, z: 0 });
-  const [gyroscopeData, setGyroscopeData] = useState({ x: 0, y: 0, z: 0 });
    const [recordedData, setRecordedData] = useState({
     accX: [] as number[],
     accY: [] as number[],
@@ -38,22 +38,13 @@ function App(): React.JSX.Element {
   const [peaks, setPeaks] = useState<number[]>([]);
   const [chartData, setChartData] = useState<number[]>([])
 
-  const [accData, setAccData] = useState<any[]>([]);
-  const [gyroData, setGyroData] = useState<any[]>([]);
-  const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null);
   
-
- 
-console.log("recorded Data: ",  recordedData)
-
-
-
   //loads the modal on Open
   useEffect(() => {
     const loadModel = async () => {
       try {
-         //const loadedModel = await loadTensorflowModel(require('./android/app/src/main/assets/model.tflite'));
-        const loadedModel = await loadTensorflowModel(require('./android/app/src/main/assets/newSplitModel.tflite')); //besseres model, aber zeigt immer nur squat 
+        //const loadedModel = await loadTensorflowModel(require('./android/app/src/main/assets/newSplitModel.tflite'));
+        const loadedModel = await loadTensorflowModel(require('./android/app/src/main/assets/july9model.tflite')); //besseres model, aber zeigt immer nur squat 
         setModel(loadedModel);
         console.log('Model loaded successfully');
       } catch (error) {
@@ -65,8 +56,6 @@ console.log("recorded Data: ",  recordedData)
     loadModel();
 
   }, []);
-
-
 
     // listens to isTracking, starts Tracking of Sensordata and Time
     useEffect(() => {
@@ -86,7 +75,7 @@ console.log("recorded Data: ",  recordedData)
         .pipe(map(({ x, y, z }) => ({ x, y, z })))
         .subscribe(
           sensorData => {
-            setAccelerometerData(sensorData);
+           
             setRecordedData(prevState => ({
               ...prevState,
               accX: [...prevState.accX, sensorData.x],
@@ -101,7 +90,7 @@ console.log("recorded Data: ",  recordedData)
         .pipe(map(({ x, y, z }) => ({ x, y, z })))
         .subscribe(
           sensorData => {
-            setGyroscopeData(sensorData);
+          
             setRecordedData(prevState => ({
               ...prevState,
               gyroX: [...prevState.gyroX, sensorData.x],
@@ -124,41 +113,20 @@ console.log("recorded Data: ",  recordedData)
     };
   }, [isTracking]);
 
-
-// pads the single rep sequence to have a uniform length (that of the longest rep recorded)
-function padSequence(seq: number[], maxLength: number): number[] {
-  const padded = new Array(maxLength).fill(0);
-  for (let i = 0; i < seq.length && i < maxLength; i++) {
-      padded[i] = seq[i];
-  }
-  return padded;
-}
-
+const maxLength = 30;
 
 const class_names = ['Dip', 'PullUp', 'PushUp', 'Squat'];
 
-const prepareDataForModel = (paddedRep: {
-  accX: number[],
-  accY: number[],
-  accZ: number[],
-  gyroX: number[],
-  gyroY: number[],
-  gyroZ: number[]
-}, maxLength: number): Float32Array => {
-  const features = [];
-  for (let i = 0; i < maxLength; i++) {
-    features.push(
-      paddedRep.accX[i],
-      paddedRep.accY[i],
-      paddedRep.accZ[i],
-      paddedRep.gyroX[i],
-      paddedRep.gyroY[i],
-      paddedRep.gyroZ[i]
-    );
+function padSequence(sequence: number[], maxLength: number): number[] {
+  if (sequence.length >= maxLength) {
+    return sequence.slice(0, maxLength);
   }
-  return new Float32Array(features);
-};
-
+  const paddedSequence = new Array(maxLength).fill(0);
+  for (let i = 0; i < sequence.length; i++) {
+    paddedSequence[i] = sequence[i];
+  }
+  return paddedSequence;
+}
 
   //filter method, adjusts the windowsize, if the length of the data isnt as big
   const applySavitzkyGolayFilter = (data: number[], windowSize: number, polynomialOrder: number) => {
@@ -176,88 +144,111 @@ const prepareDataForModel = (paddedRep: {
   };
 
 
-  type AxisRange = {
-    axis: 'y' | 'magnitude';
-    range: number;
-  };
-  
-  // Funktion zum Berechnen der Range
-  function calculateRange(data: number[]): number {
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    return max - min;
-  }
-  
-  // Funktion zum Auswählen der besten Achse
-  function selectBestAxis(yData: number[], magnitudeData: number[]): 'y' | 'magnitude' {
-    const yRange = calculateRange(yData);
-    const magnitudeRange = calculateRange(magnitudeData);
-  
-    const ranges: AxisRange[] = [
-      { axis: 'y', range: yRange },
-      { axis: 'magnitude', range: magnitudeRange }
-    ];
-  
-    ranges.sort((a, b) => b.range - a.range);
-    return ranges[0].axis;
+  function subtractMean(data: number[]): number[] {
+    const mean = numeric.sum(data) / data.length;
+    return data?.map(value => value - mean);
   }
 
-  
-
-  //combines x,y,z direction of the accelerometer
-  //  const calculateMagnitude = (x: number, y: number, z: number) => {
-  //   return Math.sqrt(x ** 2 + y ** 2 + z ** 2);
-  // };
-  const calculateMagnitude = (x: number[], y: number[], z: number[]): number[] => {
-    return x.map((_, index) => Math.sqrt(x[index] ** 2 + y[index] ** 2 + z[index] ** 2));
-  };
-
-
- //function to normalize the data
-    const minMaxScaler = (data: number[]) => {
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    return data.map((value) => (value - min) / (max - min));
-  };
-
-
-const predict = ()=> {
-  // const combinedData = recordedData.accX.map((x, i) =>
-  //   calculateMagnitude(x, recordedData.accY[i], recordedData.accZ[i])
-  // ); 
- 
-  const magnitude = calculateMagnitude(recordedData.accX, recordedData.accY, recordedData.accZ)
-  const bestAxis = selectBestAxis(magnitude, recordedData.accY)
-  console.log("BEST AXIS:", bestAxis)
-  let peaks: number[] = [];
-
-  if(bestAxis == "y"){
-    const smoothedY = applySavitzkyGolayFilter(recordedData.accY,9,3)
-    const normedY = minMaxScaler(smoothedY)
-    setChartData(normedY)
-   console.log("normedY:", normedY)
-    const yData = normedY.map((value)=> normedY[0]<0.5? -value: value)
-    peaks = findPeaks(yData,9, -0.2,0.5)
-    setPeaks(peaks)
-    setPredReps(peaks.length-1)
-    console.log("Accy peaks:", peaks)
+  interface SensorData {
+    accX: number[];
+    accY: number[];
+    accZ: number[];
+    gyroX: number[];
+    gyroY: number[];
+    gyroZ: number[];
   }
-  else{
-  const smoothedMag = applySavitzkyGolayFilter(magnitude, 9,3)
-  const normedMag = minMaxScaler(smoothedMag)
-  console.log("normedMag:", normedMag)
-  setChartData(normedMag)
-  //Rep == Valley or Hill? Maxima->Maxima or Minima->Minima? 
-  const magData = normedMag.map((value)=> normedMag[0]<0.5? -value: value)
-  peaks= findPeaks(magData,9, -0.2,0.5)
-  setPredReps(peaks.length-1)
-  setPeaks(peaks)
-  console.log("MAGNITUDE peaks: ", peaks)}
+
+  function normalizeToRange(data: number[]): number[] {
+    const min: number = Math.min(...data);
+    const max: number = Math.max(...data);
+    const range: number = max - min;
+
+    if (range === 0) {
+      // Wenn alle Werte gleich sind, normalisiere zu 0
+      return data.map(() => 0);
+    }
+
+    return data.map((value: number) => {
+      return (2 * (value - min)) / range - 1;
+    });
+  }
+
+  function invertArray(data: number[]): number[] {
+    return data.map(value => -value);
+  }
+
+  const prepareDataForModel = (paddedRep: {
+    accX: number[],
+    accY: number[],
+    accZ: number[],
+    gyroX: number[],
+    gyroY: number[],
+    gyroZ: number[]
+  }, maxLength: number): number[] => {
+    const features = [];
+    for (let i = 0; i < maxLength; i++) {
+      if (typeof paddedRep.accX[i] !== 'number' || 
+          typeof paddedRep.accY[i] !== 'number' || 
+          typeof paddedRep.accZ[i] !== 'number' ||
+          typeof paddedRep.gyroX[i] !== 'number' || 
+          typeof paddedRep.gyroY[i] !== 'number' || 
+          typeof paddedRep.gyroZ[i] !== 'number') {
+        console.error(`Invalid sensor data at index ${i}`);
+        return []; // Rückgabe eines leeren Arrays bei ungültigen Daten
+      }
   
+      features.push(
+        paddedRep.accX[i],
+        paddedRep.accY[i],
+        paddedRep.accZ[i],
+        paddedRep.gyroX[i],
+        paddedRep.gyroY[i],
+        paddedRep.gyroZ[i]
+      );
+    }
   
- 
-    
-      //setPeaks(peaks);
+    if (features.length !== maxLength * 6) {
+      console.log("Feature length does not match expected length");
+      return []; // Rückgabe eines leeren Arrays bei falscher Länge
+    }
+  
+    return features;
+  };
+
+
+const predictLabel = async ()=> {
+  const filteredYData = applySavitzkyGolayFilter(recordedData.accY, 9, 3);
+  const filteredXData = applySavitzkyGolayFilter(recordedData.accX, 9, 3);
+  const filteredZData = applySavitzkyGolayFilter(recordedData.accZ, 9, 3);
+  const yDataMeanSubtracted = subtractMean(filteredYData);
+  const zDataMeanSubtracted = subtractMean(filteredZData);
+  const xDataMeanSubtracted = subtractMean(filteredXData);
+  let dataMatrix = new Matrix(xDataMeanSubtracted.length, 3); // Erstellt eine leere Matrix mit der richtigen Größe
+    for (let i = 0; i < xDataMeanSubtracted.length; i++) {
+      dataMatrix.setRow(i, [
+        xDataMeanSubtracted[i],
+        yDataMeanSubtracted[i],
+        zDataMeanSubtracted[i],
+      ]);
+    }
+    let pca = new PCA(dataMatrix);
+    let transformedData = pca.predict(dataMatrix).to2DArray(); // Konvertiert das Ergebnis in ein 2D-Array
+
+    // Die erste Hauptkomponente extrahieren (wichtigste Komponente)
+    let firstPrincipalComponent: number[] = transformedData.map(
+      (row: number[]) => row[0],
+    );
+
+    const normalizedPC1 = normalizeToRange(firstPrincipalComponent);
+    setChartData(normalizedPC1)
+    const peaks =
+    normalizedPC1[0] > 0
+      ? findPeaks(normalizedPC1, 9, 0.4, 0.2)
+      : findPeaks(invertArray(normalizedPC1), 9, 0.4, 0.2);
+
+      setPeaks(peaks)
+      setPredReps(peaks.length-1)
+
       const extractedData: any = {};
       for (let i = 0; i < peaks.length-1 ; i++) {
         const start = peaks[i];
@@ -270,14 +261,7 @@ const predict = ()=> {
         const segmentGyroZ = recordedData.gyroZ.slice(start,end)
         const segmentGyroY = recordedData.gyroY.slice(start,end)
 
-  
-      // const segmentAccX = normalizedAccX.slice(start, end);
-      // const segmentAccY = normalizedAccY.slice(start, end);
-      // const segmentAccZ = normalizedAccZ.slice(start, end);
-      // const segmentGyroX = normalizedGyroX.slice(start, end);
-      // const segmentGyroY = normalizedGyroY.slice(start, end);
-      // const segmentGyroZ = normalizedGyroZ.slice(start, end);
-  
+ 
       extractedData[`Rep${i + 1}`] = {
         accX: segmentAccX,
         accY: segmentAccY,
@@ -287,92 +271,31 @@ const predict = ()=> {
         gyroZ: segmentGyroZ,
       };
     }
- // const smoothedData = applySavitzkyGolayFilter(recordedData.accY,9,3)
-  // const invData = smoothedData.map((value: number)=> -value)
-  // const peaks=  findPeaks(invData, 9, -0.5, 0.7)
-  // console.log("smoothedData", smoothedData),98
-  // console.log("peaks:", peaks)
+          const rep1 = extractedData.Rep1;
+        
+          if (!rep1) {
+            console.error("No data in extractedData for Rep1");
+            return;
+          }
+          const paddedRep = {
+            accX: padSequence(rep1.accX, maxLength),
+            accY: padSequence(rep1.accY, maxLength),
+            accZ: padSequence(rep1.accZ, maxLength),
+            gyroX: padSequence(rep1.gyroX, maxLength),
+            gyroY: padSequence(rep1.gyroY, maxLength),
+            gyroZ: padSequence(rep1.gyroZ, maxLength)
+          };
+          const preparedData = prepareDataForModel(paddedRep, maxLength);           
+          //const preparedData2 = [-0.7776673436164856, -1.0019944906234741, 13.084552764892578, -0.837496280670166, 0.30604347586631775, 0.18249599635601044, -0.6394818425178528, -0.6981059908866882, 12.4540433883667, 0.6568328738212585, 0.10644327104091644, 0.1814269721508026, -0.2709871530532837, 0.6029912829399109, 10.89571762084961, 0.34605515003204346, -0.34758231043815613, 0.11270463466644287, -0.3194418251514435, 0.7639086246490479, 9.105886459350586, 0.4495968222618103, -0.5768095254898071, -0.015577063895761967, 0.04366901144385338, 1.5188441276550293, 8.169096946716309, 0.5468770861625671, -0.4657847583293915, 0.09178250283002853, 0.7680960893630981, 2.612962245941162, 7.371688365936279, 2.127185583114624, -0.33689218759536743, 0.3318525552749634, 1.0534402132034302, 3.315854072570801, 5.482554912567139, -0.010690141469240189, -0.18860463798046112, 0.14340060949325562, 2.2570300102233887, 2.589632272720337, 7.331608772277832, -1.418123722076416, 0.25824329257011414, 0.2054034322500229, 1.322034478187561, 1.8077775239944458, 8.729615211486816, -0.6902777552604675, 0.347276896238327, 0.25931230187416077, 0.1824527233839035, 1.5134602785110474, 10.029516220092773, -0.570853590965271, 0.417679101228714, 0.15714508295059204, 0.3002992272377014, 1.7336000204086304, 11.35513973236084, -0.08674286305904388, 0.46334129571914673, -0.02871066704392433, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+          const floaty = new Float32Array(preparedData)
+ 
 
-  // const smoothedData = applySavitzkyGolayFilter(combinedData,9,3)
-  //const smoothedData2 = applySavitzkyGolayFilter(combinedData,13,3)
+           const output = await model.run([floaty]);
   
-  //console.log("smoothed data size 13", smoothedData2)
-  // const normalizedData = minMaxScaler(smoothedData);
-  // console.log("NORMALIZED COMBINED DATA:", normalizedData)
-  //  const example = [0.618040552629508, 0.4112559027681461, 0.2954085394554974, 0.2564787141747587, 0.28044667840912585, 0.39911933221290186, 0.46868903224850705, 0.47527006502225094, 0.554644578804998, 0.7314845010462436, 0.824875801981758, 0.8029570813246576, 0.7442211017394238, 0.7225404858546401, 0.5172465222624764, 0.275804635467232, 0.22029520011953066, 0.21117469513555098, 0.15825709321415982, 0.09155657445049008, 0.09765298494403643, 0.23046458274302006, 0.24353354696938964, 0.2697092641335558, 0.35952558238030846, 0.41618706059430677, 0.4811076869008306, 0.5264662870371414, 0.461387907305928, 0.3815258927298769, 0.45273848239149533, 0.4961402099040545, 0.5596586281829015, 0.5918996999382564, 0.6280871797467613, 0.6085006815818863, 0.47211517408564424, 0.4141781047759924, 0.5710177825424325, 0.7179894309015712, 0.8698452683617006, 0.9708370102841374, 1, 0.816571245786882, 0.6234256992407131, 0.4463863444475735, 0.25959746291671754, 0.17160980852283136, 0.17222443063777304, 0.17040910777618964, 0.11736772060263827, 0.009798253174203705, 0, 0.10201989632792854, 0.16105644838648492, 0.2661701860009938, 0.37878411957273556, 0.37039782716004366, 0.4262998979395553, 0.4712787609308802, 0.44245038991902635, 0.46438984498429137, 0.45874211631013484, 0.43874478529209815, 0.5147505528244011, 0.5225636727724808, 0.5233872233553046, 0.5073892634895341, 0.4313558995751066, 0.42742571777795785, 0.43083119888874205, 0.4454900400119684, 0.467740497577581, 0.49392082801552606]
-  //   const invData = example.map((value)=> -value)
-  //   const peaks = findPeaks(invData,7,-0.4, 0.3) ;
-  //   const peaks2 = findPeaks(invData,7,-0.4)
-  //   console.log("PEAKS MIT 0.3 ", peaks)  
-  //   console.log("PEAKS OHNE::::", peaks2)
-   
-   // const invData = normalizedData.map((value) => -value); 
-      // const peaks = findPeaks(invData,7,-0.4, 0.3) ;
-      // const peaks2 = findPeaks(normalizedData,7,0.4)
-      // console.log("Minimas:", peaks)
-      // console.log("actual Peaks ", peaks2)
-  
-      // const smoothedAccX = applySavitzkyGolayFilter(recordedData.accX, 9, 2);
-      // const smoothedAccY = applySavitzkyGolayFilter(recordedData.accY, 9, 2);
-      // const smoothedAccZ = applySavitzkyGolayFilter(recordedData.accZ, 9, 2);
-      // const smoothedGyroX = applySavitzkyGolayFilter(recordedData.gyroX, 9, 2);
-      // const smoothedGyroY = applySavitzkyGolayFilter(recordedData.gyroY, 9, 2);
-      // const smoothedGyroZ = applySavitzkyGolayFilter(recordedData.gyroZ, 9, 2);
+              const maxIndex = output[0].indexOf(Math.max(...output[0]));
+             setPredLabel((class_names[maxIndex]));
 
-      // const normalizedAccX = minMaxScaler(smoothedAccX);
-      // const normalizedAccY = minMaxScaler(smoothedAccY);
-      // const normalizedAccZ = minMaxScaler(smoothedAccZ);
-      // const normalizedGyroX = minMaxScaler(smoothedGyroX);
-      // const normalizedGyroY = minMaxScaler(smoothedGyroY);
-      // const normalizedGyroZ = minMaxScaler(smoothedGyroZ);
-
-      // console.log("NORMALIZED ACCY", normalizedAccY)
-    console.log("EXTRACTED DATA:", extractedData)
-
-    
-      //setExtractedData(extractedData);
-      const repCount =  Object.keys(extractedData).length;
-      //console.log("PREDICTED REPS:", repCount)
-      setPredReps(repCount)
-      if (repCount === 0) {
-        console.warn("No reps detected.");
-        return;
-      }
-    
-      const maxLength = 51;
-      const rep1 = extractedData.Rep1;
-    
-      if (!rep1) {
-        console.error("No data in extractedData for Rep1");
-        return;
-      }
-      const paddedRep = {
-        accX: padSequence(rep1.accX, maxLength),
-        accY: padSequence(rep1.accY, maxLength),
-        accZ: padSequence(rep1.accZ, maxLength),
-        gyroX: padSequence(rep1.gyroX, maxLength),
-        gyroY: padSequence(rep1.gyroY, maxLength),
-        gyroZ: padSequence(rep1.gyroZ, maxLength)
-      };
-      const preparedData = prepareDataForModel(paddedRep, 51); 
-      console.log("PREPARED DATA:::::", preparedData)// 51 hier abhängig von der shape des tensors im training
-      const runInference = async () => {
-        if (!model) return;
-        try {
-          const output = await model.run([preparedData]);
-          console.log('Inference result:', output);
-  
-          const maxIndex = output[0].indexOf(Math.max(...output[0]));
-          console.log((class_names[maxIndex]))
-          setPredLabel(class_names[maxIndex]);
-        } catch (error) {
-          console.error('Error running inference:', error);
-        }
-      };
-      runInference()
 }
-
-  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -385,9 +308,7 @@ const predict = ()=> {
         setTimeElapsed={setTimeElapsed}
         predLabel={predLabel}
         predReps={predReps}
-        setAccData={setAccelerometerData}
-        setGyroData={setGyroscopeData}
-        predict={predict}
+        predict={predictLabel}
         setPredReps={setPredReps}
         setPredLabel={setPredLabel}
         setRecordedData={setRecordedData}
@@ -395,7 +316,7 @@ const predict = ()=> {
         peaks={peaks}
       />
       <TouchableOpacity
-        onPress={() => setTrackingModalOpen(true)}
+       onPress={() => setTrackingModalOpen(true)}
         style={{
           position: "absolute",
           width: 76,
