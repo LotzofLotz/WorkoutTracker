@@ -21,6 +21,8 @@ const TrackingModal = ({
   chartData,
   peaks,
   predictions,
+  quality,
+  jerk,
 }) => {
   // const Items = Array.from(Array(50).keys());
 
@@ -103,14 +105,14 @@ const TrackingModal = ({
           <TouchableOpacity
             onPress={() => handleStartStop()}
             style={{
-              width: 100,
-              height: 100,
+              width: 200,
+              height: 200,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: 'red',
               borderRadius: 20,
             }}>
-            <Text style={{fontSize: 28, color: 'white'}}>
+            <Text style={{fontSize: 38, color: 'white'}}>
               {isTracking ? 'STOP' : 'START'}{' '}
             </Text>
           </TouchableOpacity>
@@ -130,18 +132,7 @@ const TrackingModal = ({
               style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
               <ChartComponent chartData={chartData} peaks={peaks} />
             </View>
-            {/* <Text style={{color: 'black'}}>
-              {class_names[0]} :{output[0][0]}
-            </Text>
-            <Text style={{color: 'black'}}>
-              {class_names[1]} :{output[0][1]}
-            </Text>
-            <Text style={{color: 'black'}}>
-              {class_names[2]} :{output[0][2]}
-            </Text>
-            <Text style={{color: 'black'}}>
-              {class_names[3]}:{output[0][3]}
-            </Text> */}
+
             {/* <Text style={{color: 'black', fontSize: 25}}>{output[0][0]}</Text> */}
             {predictions.map((prediction, index) => (
               <Text style={{color: 'black', fontSize: 20}} key={index}>
@@ -149,6 +140,12 @@ const TrackingModal = ({
                 {(prediction.probability * 100).toFixed(2)}%
               </Text>
             ))}
+            <Text style={{color: 'black', fontSize: 25}}>
+              quality Correlation: {quality.toFixed(2)}
+            </Text>
+            <Text style={{color: 'black', fontSize: 25}}>
+              quality Jerk: {jerk.toFixed(2)}
+            </Text>
             <Text style={{color: 'black', fontSize: 25}}>
               LABEL: {predLabel}
             </Text>

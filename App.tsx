@@ -35,6 +35,8 @@ function App(): React.JSX.Element {
   const [peaks, setPeaks] = useState<number[]>([]);
   const [chartData, setChartData] = useState<number[]>([]);
   const [output, setOutput] = useState([0.0, 0.0, 0.0, 0.0]);
+  const [quality, setQuality] = useState<number>(0);
+  const [jerk, setJerk] = useState<number>(0);
 
   type Prediction = {
     label: string;
@@ -48,7 +50,7 @@ function App(): React.JSX.Element {
       try {
         //const loadedModel = await loadTensorflowModel(require('./android/app/src/main/assets/newSplitModel.tflite'));
         const loadedModel = await loadTensorflowModel(
-          require('./android/app/src/main/assets/diplessModel.tflite'),
+          require('./android/app/src/main/assets/modelShort.tflite'),
         );
         setModel(loadedModel);
         console.log(loadModel, 'Model loaded successfully');
@@ -118,7 +120,7 @@ function App(): React.JSX.Element {
     };
   }, [isTracking]);
 
-  const maxLength = 59;
+  const maxLength = 29;
 
   const class_names = ['PullUp', 'PushUp', 'SitUp', 'Squat'];
 
@@ -221,6 +223,173 @@ function App(): React.JSX.Element {
     return features;
   };
 
+  function padReps(rep: any, targetLength: number): any {
+    return {
+      accX: padSequence(rep.accX, targetLength),
+      accY: padSequence(rep.accY, targetLength),
+      accZ: padSequence(rep.accZ, targetLength),
+      gyroX: padSequence(rep.gyroX, targetLength),
+      gyroY: padSequence(rep.gyroY, targetLength),
+      gyroZ: padSequence(rep.gyroZ, targetLength),
+    };
+  }
+
+  function calculateCorrelation(arr1: number[], arr2: number[]): number {
+    const n = arr1.length;
+    const mean1 = arr1.reduce((sum, value) => sum + value, 0) / n;
+    const mean2 = arr2.reduce((sum, value) => sum + value, 0) / n;
+
+    const numerator = arr1.reduce(
+      (sum, value, i) => sum + (value - mean1) * (arr2[i] - mean2),
+      0,
+    );
+    const denominator = Math.sqrt(
+      arr1.reduce((sum, value) => sum + (value - mean1) ** 2, 0) *
+        arr2.reduce((sum, value) => sum + (value - mean2) ** 2, 0),
+    );
+
+    return denominator === 0 ? 0 : numerator / denominator;
+  }
+
+  // function segmentReps(normalizedPC1: number[], peaks: number[]): number[][] {
+  //   const segments: number[][] = [];
+  //   for (let i = 0; i < peaks.length - 1; i++) {
+  //     segments.push(normalizedPC1.slice(peaks[i], peaks[i + 1]));
+  //   }
+  //   return segments;
+  // }
+
+  // function calculateSimilarity(segment1: number[], segment2: number[]): number {
+  //   const n = Math.min(segment1.length, segment2.length);
+  //   let sum = 0;
+
+  //   for (let i = 0; i < n; i++) {
+  //     sum += (segment1[i] - segment2[i]) ** 2;
+  //   }
+
+  //   return 1 / (1 + Math.sqrt(sum / n)); // Wert zwischen 0 und 1
+  // }
+
+  // function calculateOverallSimilarity(segments: number[][]): number {
+  //   let totalSimilarity = 0;
+  //   let count = 0;
+
+  //   for (let i = 0; i < segments.length; i++) {
+  //     for (let j = i + 1; j < segments.length; j++) {
+  //       totalSimilarity += calculateSimilarity(segments[i], segments[j]);
+  //       count++;
+  //     }
+  //   }
+
+  //   return count === 0 ? 0 : totalSimilarity / count;
+  // }
+
+  function calculateOverallJerk(
+    accX: number[],
+    accY: number[],
+    accZ: number[],
+  ): number {
+    const jerkX = calculateDerivative(accX);
+    const jerkY = calculateDerivative(accY);
+    const jerkZ = calculateDerivative(accZ);
+
+    let totalJerk = 0;
+    for (let i = 0; i < jerkX.length; i++) {
+      totalJerk += Math.sqrt(jerkX[i] ** 2 + jerkY[i] ** 2 + jerkZ[i] ** 2);
+    }
+
+    // Durchschnittlicher Jerk-Wert für die gesamte Übung
+    return totalJerk / jerkX.length;
+  }
+
+  function calculateCombinedJerk(
+    accX: number[],
+    accY: number[],
+    accZ: number[],
+  ): number[] {
+    const jerkX = calculateDerivative(accX);
+    const jerkY = calculateDerivative(accY);
+    const jerkZ = calculateDerivative(accZ);
+
+    let combinedJerk = [];
+    for (let i = 0; i < jerkX.length; i++) {
+      combinedJerk.push(
+        Math.sqrt(jerkX[i] ** 2 + jerkY[i] ** 2 + jerkZ[i] ** 2),
+      );
+    }
+    return combinedJerk;
+  }
+
+  const calculateDerivative = (data: number[]) => {
+    let derivative = [];
+    for (let i = 1; i < data.length; i++) {
+      derivative.push(data[i] - data[i - 1]);
+    }
+    return derivative;
+  };
+
+  function calculateRepJerk(
+    accX: number[],
+    accY: number[],
+    accZ: number[],
+  ): number {
+    const jerkX = calculateDerivative(accX);
+    const jerkY = calculateDerivative(accY);
+    const jerkZ = calculateDerivative(accZ);
+
+    let totalJerk = 0;
+    for (let i = 0; i < jerkX.length; i++) {
+      totalJerk += Math.sqrt(jerkX[i] ** 2 + jerkY[i] ** 2 + jerkZ[i] ** 2);
+    }
+
+    // Durchschnittlicher Jerk-Wert für die gesamte Rep
+    return totalJerk / jerkX.length;
+  }
+
+  function calculateOverallSimilarity(
+    extractedData: Record<string, any>,
+    targetLength: number,
+  ): number {
+    const repKeys = Object.keys(extractedData);
+    let totalCorrelation = 0;
+    let count = 0;
+
+    for (let i = 0; i < repKeys.length; i++) {
+      for (let j = i + 1; j < repKeys.length; j++) {
+        const rep1 = padReps(extractedData[repKeys[i]], targetLength);
+        const rep2 = padReps(extractedData[repKeys[j]], targetLength);
+
+        // Berechne die Korrelationen
+        const corrAccX = calculateCorrelation(rep1.accX, rep2.accX);
+        const corrAccY = calculateCorrelation(rep1.accY, rep2.accY);
+        const corrAccZ = calculateCorrelation(rep1.accZ, rep2.accZ);
+        const corrGyroX = calculateCorrelation(rep1.gyroX, rep2.gyroX);
+        const corrGyroY = calculateCorrelation(rep1.gyroY, rep2.gyroY);
+        const corrGyroZ = calculateCorrelation(rep1.gyroZ, rep2.gyroZ);
+
+        // Berechne die euklidische Norm des Jerks für jede Rep
+        // const jerk1 = calculateCombinedJerk(rep1.accX, rep1.accY, rep1.accZ);
+        // const jerk2 = calculateCombinedJerk(rep2.accX, rep2.accY, rep2.accZ);
+        // console.log('jerk1', jerk1);
+        // console.log('jerk2:', jerk2);
+
+        // Berechne die Korrelation der kombinierten Jerk-Werte
+        // const corrJerk = calculateCorrelation(jerk1, jerk2);
+        // console.log('corrJerk:', corrJerk);
+
+        // Durchschnittliche Korrelation über alle Achsen
+        const avgCorrelation =
+          (corrAccX + corrAccY + corrAccZ + corrGyroX + corrGyroY + corrGyroZ) /
+          6;
+
+        totalCorrelation += avgCorrelation;
+        count++;
+      }
+    }
+
+    return count === 0 ? 0 : totalCorrelation / count;
+  }
+
   const predictLabel = async () => {
     const filteredYData = applySavitzkyGolayFilter(recordedData.accY, 9, 3);
     const filteredXData = applySavitzkyGolayFilter(recordedData.accX, 9, 3);
@@ -228,6 +397,16 @@ function App(): React.JSX.Element {
     const yDataMeanSubtracted = subtractMean(filteredYData);
     const zDataMeanSubtracted = subtractMean(filteredZData);
     const xDataMeanSubtracted = subtractMean(filteredXData);
+
+    const avgJerk = calculateOverallJerk(
+      filteredXData,
+      filteredYData,
+      filteredZData,
+    );
+
+    setJerk(avgJerk);
+    console.log('Average Jerk for the entire exercise:', avgJerk);
+
     let dataMatrix = new Matrix(xDataMeanSubtracted.length, 3); // Erstellt eine leere Matrix mit der richtigen Größe
     for (let i = 0; i < xDataMeanSubtracted.length; i++) {
       dataMatrix.setRow(i, [
@@ -254,6 +433,14 @@ function App(): React.JSX.Element {
     setPeaks(peaks);
     setPredReps(peaks.length - 1);
 
+    // const segments = segmentReps(normalizedPC1, peaks);
+
+    // Berechne die Gesamtähnlichkeit
+    // const similarityScore = calculateOverallSimilarity(segments);
+    // setQuality(similarityScore);
+
+    // console.log('Overall Similarity:', similarityScore);
+
     const extractedData: any = {};
     for (let i = 0; i < peaks.length - 1; i++) {
       const start = peaks[i];
@@ -275,29 +462,14 @@ function App(): React.JSX.Element {
         gyroZ: segmentGyroZ,
       };
     }
-    // const rep1 = extractedData.Rep1;
+    const targetLength = 50; // Ziel-Länge nach Padding, z.B. 100
+    const overallSimilarity = calculateOverallSimilarity(
+      extractedData,
+      targetLength,
+    );
+    setQuality(overallSimilarity);
+    console.log('Overall Similarity:', overallSimilarity);
 
-    // if (!rep1) {
-    //   console.error('No data in extractedData for Rep1');
-    //   return;
-    // }
-    // const paddedRep = {
-    //   accX: padSequence(rep1.accX, maxLength),
-    //   accY: padSequence(rep1.accY, maxLength),
-    //   accZ: padSequence(rep1.accZ, maxLength),
-    //   gyroX: padSequence(rep1.gyroX, maxLength),
-    //   gyroY: padSequence(rep1.gyroY, maxLength),
-    //   gyroZ: padSequence(rep1.gyroZ, maxLength),
-    // };
-    // const preparedData = prepareDataForModel(paddedRep, maxLength);
-    // //const preparedData2 = [-0.7776673436164856, -1.0019944906234741, 13.084552764892578, -0.837496280670166, 0.30604347586631775, 0.18249599635601044, -0.6394818425178528, -0.6981059908866882, 12.4540433883667, 0.6568328738212585, 0.10644327104091644, 0.1814269721508026, -0.2709871530532837, 0.6029912829399109, 10.89571762084961, 0.34605515003204346, -0.34758231043815613, 0.11270463466644287, -0.3194418251514435, 0.7639086246490479, 9.105886459350586, 0.4495968222618103, -0.5768095254898071, -0.015577063895761967, 0.04366901144385338, 1.5188441276550293, 8.169096946716309, 0.5468770861625671, -0.4657847583293915, 0.09178250283002853, 0.7680960893630981, 2.612962245941162, 7.371688365936279, 2.127185583114624, -0.33689218759536743, 0.3318525552749634, 1.0534402132034302, 3.315854072570801, 5.482554912567139, -0.010690141469240189, -0.18860463798046112, 0.14340060949325562, 2.2570300102233887, 2.589632272720337, 7.331608772277832, -1.418123722076416, 0.25824329257011414, 0.2054034322500229, 1.322034478187561, 1.8077775239944458, 8.729615211486816, -0.6902777552604675, 0.347276896238327, 0.25931230187416077, 0.1824527233839035, 1.5134602785110474, 10.029516220092773, -0.570853590965271, 0.417679101228714, 0.15714508295059204, 0.3002992272377014, 1.7336000204086304, 11.35513973236084, -0.08674286305904388, 0.46334129571914673, -0.02871066704392433, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    // const floaty = new Float32Array(preparedData);
-
-    // const output = await model.run([floaty]);
-    // setOutput(output);
-    // const maxIndex = output[0].indexOf(Math.max(...output[0]));
-    // console.log('maxIndex:', maxIndex);
-    // setPredLabel(class_names[maxIndex]);
     const predictions: {label: string; probability: number}[] = [];
     for (let i = 1; i <= 3; i++) {
       const rep = extractedData[`Rep${i}`];
@@ -327,10 +499,6 @@ function App(): React.JSX.Element {
       });
     }
     setPredictions(predictions);
-
-    // setOutput erwartet ein number[], aber predictions ist ein string[].
-    // Wir sollten predictions als string[] belassen und setOutput entfernen, wenn es nicht benötigt wird.
-    // setOutput(predictions); // Entfernen Sie diese Zeile, wenn setOutput nicht verwendet wird.
 
     // Bestimmen des finalen Labels basierend auf den ersten 3 Predictions
     let finalLabel: string;
@@ -368,6 +536,8 @@ function App(): React.JSX.Element {
         chartData={chartData}
         peaks={peaks}
         predictions={predictions}
+        quality={quality}
+        jerk={jerk}
       />
       <TouchableOpacity
         onPress={() => setTrackingModalOpen(true)}
