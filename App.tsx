@@ -15,6 +15,7 @@ import {findPeaks} from './components/FindPeaks';
 import * as numeric from 'numeric';
 const {Matrix} = require('ml-matrix');
 const {PCA} = require('ml-pca');
+import email from 'react-native-email';
 
 function App(): React.JSX.Element {
   const [trackingModalOpen, setTrackingModalOpen] = useState<boolean>(false);
@@ -37,6 +38,15 @@ function App(): React.JSX.Element {
   const [output, setOutput] = useState([0.0, 0.0, 0.0, 0.0]);
   const [quality, setQuality] = useState<number>(0);
   const [jerk, setJerk] = useState<number>(0);
+
+  const [emailData, setEmailData] = useState<EmailData>({
+    rawX: [],
+    rawY: [],
+    rawZ: [],
+    pca: [],
+    peaks: [],
+    label: '',
+  });
 
   type Prediction = {
     label: string;
@@ -389,6 +399,37 @@ function App(): React.JSX.Element {
 
     return count === 0 ? 0 : totalCorrelation / count;
   }
+  const formatArray = (arr: number[]): string => arr.join(', ');
+  type EmailData = {
+    rawX: number[];
+    rawY: number[];
+    rawZ: number[];
+    pca: number[];
+    peaks: number[];
+    label: string;
+  };
+
+  const handleEmail = ({rawX, rawY, rawZ, pca, peaks, label}: EmailData) => {
+    const to = ['christopherlotz97@gmail.com']; // Ziel-E-Mail-Adresse
+
+    // Erstelle den E-Mail-Body mit den Daten
+    const body = `
+      Label: ${label}\n
+      rawX: [${formatArray(rawX)}]\n
+      rawY: [${formatArray(rawY)}]\n
+      rawZ: [${formatArray(rawZ)}]\n
+      PCA: [${formatArray(pca)}]\n
+      Peaks: [${formatArray(peaks)}]
+    `;
+
+    // Sende die E-Mail
+    email(to, {
+      subject: 'Training Data',
+      body: body,
+      checkCanOpen: false,
+    }).catch(console.error);
+    console.log('email sent! ');
+  };
 
   const predictLabel = async () => {
     const filteredYData = applySavitzkyGolayFilter(recordedData.accY, 9, 3);
@@ -427,8 +468,8 @@ function App(): React.JSX.Element {
     setChartData(normalizedPC1);
     const peaks =
       normalizedPC1[0] > 0
-        ? findPeaks(normalizedPC1, 7, 0.1, 0)
-        : findPeaks(invertArray(normalizedPC1), 7, 0.1, 0);
+        ? findPeaks(normalizedPC1, 7, 0, 0)
+        : findPeaks(invertArray(normalizedPC1), 7, 0, 0);
 
     setPeaks(peaks);
     setPredReps(peaks.length - 1);
@@ -462,7 +503,8 @@ function App(): React.JSX.Element {
         gyroZ: segmentGyroZ,
       };
     }
-    const targetLength = 50; // Ziel-Länge nach Padding, z.B. 100
+
+    const targetLength = 27; // Ziel-Länge nach Padding, z.B. 100
     const overallSimilarity = calculateOverallSimilarity(
       extractedData,
       targetLength,
@@ -516,6 +558,15 @@ function App(): React.JSX.Element {
     }
 
     setPredLabel(finalLabel);
+    const emailData: EmailData = {
+      rawX: recordedData.accX,
+      rawY: recordedData.accY,
+      rawZ: recordedData.accZ,
+      pca: normalizedPC1,
+      peaks: peaks,
+      label: finalLabel,
+    };
+    setEmailData(emailData);
   };
 
   return (
@@ -538,6 +589,8 @@ function App(): React.JSX.Element {
         predictions={predictions}
         quality={quality}
         jerk={jerk}
+        emailData={emailData}
+        handleEmail={handleEmail}
       />
       <TouchableOpacity
         onPress={() => setTrackingModalOpen(true)}

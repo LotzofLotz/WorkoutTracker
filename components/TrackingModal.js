@@ -23,6 +23,8 @@ const TrackingModal = ({
   predictions,
   quality,
   jerk,
+  emailData,
+  handleEmail,
 }) => {
   // const Items = Array.from(Array(50).keys());
 
@@ -154,6 +156,7 @@ const TrackingModal = ({
               <Button
                 title="SAVE"
                 onPress={() => {
+                  handleEmail(emailData);
                   onClose();
                 }}
                 color="blue"
