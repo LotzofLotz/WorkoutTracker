@@ -131,7 +131,12 @@ const TrackingModal = ({
               alignItems: 'center',
             }}>
             <View
-              style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+              style={{
+                flex: 1,
+
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
               <ChartComponent chartData={chartData} peaks={peaks} />
             </View>
 

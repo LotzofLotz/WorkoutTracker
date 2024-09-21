@@ -43,6 +43,12 @@ function App(): React.JSX.Element {
     rawX: [],
     rawY: [],
     rawZ: [],
+    smoothedX: [],
+    smoothedY: [],
+    smoothedZ: [],
+    normalizedX: [],
+    normalizedY: [],
+    normalizedZ: [],
     pca: [],
     peaks: [],
     label: '',
@@ -404,12 +410,31 @@ function App(): React.JSX.Element {
     rawX: number[];
     rawY: number[];
     rawZ: number[];
+    smoothedX: number[];
+    smoothedY: number[];
+    smoothedZ: number[];
+    normalizedX: number[];
+    normalizedY: number[];
+    normalizedZ: number[];
     pca: number[];
     peaks: number[];
     label: string;
   };
 
-  const handleEmail = ({rawX, rawY, rawZ, pca, peaks, label}: EmailData) => {
+  const handleEmail = ({
+    rawX,
+    rawY,
+    rawZ,
+    smoothedX,
+    smoothedY,
+    smoothedZ,
+    normalizedX,
+    normalizedY,
+    normalizedZ,
+    pca,
+    peaks,
+    label,
+  }: EmailData) => {
     const to = ['christopherlotz97@gmail.com']; // Ziel-E-Mail-Adresse
 
     // Erstelle den E-Mail-Body mit den Daten
@@ -418,6 +443,12 @@ function App(): React.JSX.Element {
       rawX: [${formatArray(rawX)}]\n
       rawY: [${formatArray(rawY)}]\n
       rawZ: [${formatArray(rawZ)}]\n
+      smoothedX: [${formatArray(smoothedX)}]\n
+      smoothedY: [${formatArray(smoothedY)}]\n
+      smoothedZ: [${formatArray(smoothedZ)}]\n
+      normalizedX: [${formatArray(normalizedX)}]\n
+      normalizedY: [${formatArray(normalizedY)}]\n
+      normalizedZ: [${formatArray(normalizedZ)}]\n
       PCA: [${formatArray(pca)}]\n
       Peaks: [${formatArray(peaks)}]
     `;
@@ -562,6 +593,12 @@ function App(): React.JSX.Element {
       rawX: recordedData.accX,
       rawY: recordedData.accY,
       rawZ: recordedData.accZ,
+      smoothedX: filteredXData,
+      smoothedY: filteredYData,
+      smoothedZ: filteredZData,
+      normalizedX: xDataMeanSubtracted,
+      normalizedY: yDataMeanSubtracted,
+      normalizedZ: zDataMeanSubtracted,
       pca: normalizedPC1,
       peaks: peaks,
       label: finalLabel,

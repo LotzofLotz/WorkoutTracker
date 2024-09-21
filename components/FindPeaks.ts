@@ -84,39 +84,6 @@ function filterByMinimumBetweenMaxima(
   return filteredIndices;
 }
 
-// function calculateProminence(
-//   index: number,
-//   data: number[],
-//   maxima: number[],
-// ): number {
-//   const peakHeight = data[index];
-//   let leftMin = peakHeight;
-//   let rightMin = peakHeight;
-
-//   // Find the lowest point to the left of the peak
-//   for (let i = index - 1; i >= 0; i--) {
-//     if (maxima.includes(i)) break;
-//     leftMin = Math.min(leftMin, data[i]);
-//   }
-
-//   // Find the lowest point to the right of the peak
-//   for (let i = index + 1; i < data.length; i++) {
-//     if (maxima.includes(i)) break;
-//     rightMin = Math.min(rightMin, data[i]);
-//   }
-
-//   return peakHeight - Math.min(leftMin, rightMin);
-// }
-
-// function filterByProminence(
-//   indices: number[],
-//   data: number[],
-//   prominence: number,
-// ): number[] {
-//   return indices.filter(
-//     i => calculateProminence(i, data, indices) >= prominence,
-//   );
-// }
 
 function filterMaxima(
   indices: number[],
@@ -140,9 +107,6 @@ function filterMaxima(
       minBetweenMaximaHeight,
     );
   }
-  // if (prominence !== undefined) {
-  //   newIndices = filterByProminence(newIndices, data, prominence);
-  // }
   return newIndices;
 }
 
