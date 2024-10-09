@@ -34,20 +34,13 @@ interface TrackingModalProps {
   isTracking: boolean;
   setIsTracking: (tracking: boolean) => void;
   timeElapsed: number;
-  setTimeElapsed: (time: number) => void;
+  resetTimeElapsed: () => void;
   predict: () => Promise<void>;
+  isLoading: boolean;
   predLabel: string;
   predReps: number;
   setPredLabel: (label: string) => void;
   setPredReps: (reps: number) => void;
-  setRecordedData: (data: {
-    accX: number[];
-    accY: number[];
-    accZ: number[];
-    gyroX: number[];
-    gyroY: number[];
-    gyroZ: number[];
-  }) => void;
   chartData: number[];
   peaks: number[];
   predictions: Prediction[];
@@ -55,6 +48,15 @@ interface TrackingModalProps {
   jerk: number;
   emailData: EmailData;
   handleEmail: (data: EmailData) => void;
+  resetRecordedData: () => void;
+  recordedData: {
+    accX: number[];
+    accY: number[];
+    accZ: number[];
+    gyroX: number[];
+    gyroY: number[];
+    gyroZ: number[];
+  };
 }
 
 const TrackingModal: React.FC<TrackingModalProps> = ({
@@ -63,13 +65,14 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   isTracking,
   setIsTracking,
   timeElapsed,
-  setTimeElapsed,
+  resetTimeElapsed,
   predict,
+  isLoading, //unused, vllt noch implementieren (ladeindikator)
   predLabel,
   predReps,
   setPredLabel,
   setPredReps,
-  setRecordedData,
+  resetRecordedData,
   chartData,
   peaks,
   predictions,
@@ -118,17 +121,10 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   const onClose = () => {
     setTrackingModalOpen(false);
     setIsTracking(false);
-    setTimeElapsed(0);
+    resetTimeElapsed();
     setPredLabel('');
     setPredReps(0);
-    setRecordedData({
-      accX: [],
-      accY: [],
-      accZ: [],
-      gyroX: [],
-      gyroY: [],
-      gyroZ: [],
-    });
+    resetRecordedData();
     setShowButton(true);
   };
 

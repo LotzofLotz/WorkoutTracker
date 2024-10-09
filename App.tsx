@@ -1,13 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import {TouchableOpacity, SafeAreaView, StyleSheet, Text} from 'react-native';
-import {loadTensorflowModel} from 'react-native-fast-tflite';
-import {
-  accelerometer,
-  gyroscope,
-  setUpdateIntervalForType,
-  SensorTypes,
-} from 'react-native-sensors';
-import {Subscription} from 'rxjs';
 import {map} from 'rxjs/operators';
 import TrackingModal from './components/TrackingModal';
 const {sgg} = require('ml-savitzky-golay-generalized');
@@ -17,6 +9,9 @@ import {Matrix} from 'ml-matrix';
 // Ändern Sie den Import von PCA, um den Standardexport zu verwenden
 const {PCA} = require('ml-pca');
 import email from 'react-native-email';
+import useSensorData from './hooks/useSensorData';
+import useTimer from './hooks/useTimer';
+import useModel from './hooks/useModel';
 
 // Typendefinition für die Email-Datenstruktur
 type EmailData = {
@@ -43,31 +38,14 @@ type Prediction = {
 const App = (): React.JSX.Element => {
   // Zustandsvariablen für die Modaleröffnung und Modellstatus
   const [trackingModalOpen, setTrackingModalOpen] = useState<boolean>(false);
-  const [model, setModel] = useState<any>(null); // TODO: Definiere einen spezifischen Typ für das Modell
+  //const [model, setModel] = useState<any>(null); // TODO: Definiere einen spezifischen Typ für das Modell
   const [isTracking, setIsTracking] = useState<boolean>(false);
   const [predReps, setPredReps] = useState<number>(0);
   const [predLabel, setPredLabel] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // Zustandsvariable für aufgezeichnete Sensordaten
-  const [recordedData, setRecordedData] = useState<{
-    accX: number[];
-    accY: number[];
-    accZ: number[];
-    gyroX: number[];
-    gyroY: number[];
-    gyroZ: number[];
-  }>({
-    accX: [],
-    accY: [],
-    accZ: [],
-    gyroX: [],
-    gyroY: [],
-    gyroZ: [],
-  });
+  //const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Weitere Zustandsvariablen für die Zeitmessung, Peaks, Diagrammdaten usw.
-  const [timeElapsed, setTimeElapsed] = useState<number>(0);
+  //const [timeElapsed, setTimeElapsed] = useState<number>(0);
   const [peaks, setPeaks] = useState<number[]>([]);
   const [chartData, setChartData] = useState<number[]>([]);
   const [quality, setQuality] = useState<number>(0);
@@ -98,93 +76,9 @@ const App = (): React.JSX.Element => {
   // Klassennamen, die das Modell vorhersagt
   const classNames = ['PullUp', 'PushUp', 'SitUp', 'Squat'];
 
-  /**
-   * Lädt das TensorFlow Lite Modell beim Start der App.
-   */
-  useEffect(() => {
-    const loadModel = async () => {
-      try {
-        const loadedModel = await loadTensorflowModel(
-          require('./android/app/src/main/assets/modelShort.tflite'),
-        );
-        setModel(loadedModel);
-        console.log('Model loaded successfully');
-      } catch (error) {
-        console.error('Error loading model:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadModel();
-  }, []);
-
-  /**
-   * Verwalten der Sensorüberwachung basierend auf dem Tracking-Status.
-   */
-  useEffect(() => {
-    let interval: NodeJS.Timeout | undefined;
-    let accelerometerSubscription: Subscription | null = null;
-    let gyroscopeSubscription: Subscription | null = null;
-
-    if (isTracking) {
-      const startTime = Date.now() - timeElapsed;
-      interval = setInterval(() => {
-        setTimeElapsed(Date.now() - startTime);
-      }, 1000); // Aktualisierung der verstrichenen Zeit alle 1 Sekunde
-
-      // Setze Aktualisierungsintervall für Sensoren auf 100ms
-      setUpdateIntervalForType(SensorTypes.accelerometer, 100);
-      setUpdateIntervalForType(SensorTypes.gyroscope, 100);
-
-      // Abonnieren der Accelerometer-Daten
-      accelerometerSubscription = accelerometer
-        .pipe(map(({x, y, z}) => ({x, y, z})))
-        .subscribe(
-          sensorData => {
-            setRecordedData(prevState => ({
-              ...prevState,
-              accX: [...prevState.accX, sensorData.x],
-              accY: [...prevState.accY, sensorData.y],
-              accZ: [...prevState.accZ, sensorData.z],
-            }));
-          },
-          error => console.log('Accelerometer not available:', error),
-        );
-
-      // Abonnieren der Gyroskop-Daten
-      gyroscopeSubscription = gyroscope
-        .pipe(map(({x, y, z}) => ({x, y, z})))
-        .subscribe(
-          sensorData => {
-            setRecordedData(prevState => ({
-              ...prevState,
-              gyroX: [...prevState.gyroX, sensorData.x],
-              gyroY: [...prevState.gyroY, sensorData.y],
-              gyroZ: [...prevState.gyroZ, sensorData.z],
-            }));
-          },
-          error => console.log('Gyroscope not available:', error),
-        );
-    } else if (!isTracking && timeElapsed !== 0) {
-      if (interval) {
-        clearInterval(interval); // Stoppe das Intervall, wenn das Tracking gestoppt wird
-      }
-    }
-
-    // Bereinigen der Abonnements und Intervalle bei Komponentenentfernung oder Statusänderung
-    return () => {
-      if (accelerometerSubscription) {
-        accelerometerSubscription.unsubscribe();
-      }
-      if (gyroscopeSubscription) {
-        gyroscopeSubscription.unsubscribe();
-      }
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [isTracking]);
+  const {model, isLoading} = useModel();
+  const {recordedData, resetRecordedData} = useSensorData(isTracking);
+  const {timeElapsed, resetTimeElapsed} = useTimer(isTracking);
 
   /**
    * Funktion zum Auffüllen oder Trunkieren einer Sequenz auf eine maximale Länge.
@@ -509,6 +403,10 @@ const App = (): React.JSX.Element => {
    * Funktion zur Vorhersage des Labels basierend auf den aufgezeichneten Sensordaten.
    */
   const predictLabel = async () => {
+    // if (!model) {
+    //   console.log('Model is not loaded yet');
+    //   return;
+    // }
     // Daten vorverarbeiten: Glätten und Mittelwert subtrahieren
     const filteredYData = applySavitzkyGolayFilter(recordedData.accY, 9, 3);
     const filteredXData = applySavitzkyGolayFilter(recordedData.accX, 9, 3);
@@ -680,13 +578,13 @@ const App = (): React.JSX.Element => {
         isTracking={isTracking}
         setIsTracking={setIsTracking}
         timeElapsed={timeElapsed}
-        setTimeElapsed={setTimeElapsed}
+        resetTimeElapsed={resetTimeElapsed}
         predLabel={predLabel}
         predReps={predReps}
-        predict={predictLabel}
         setPredReps={setPredReps}
         setPredLabel={setPredLabel}
-        setRecordedData={setRecordedData}
+        recordedData={recordedData}
+        resetRecordedData={resetRecordedData}
         chartData={chartData}
         peaks={peaks}
         predictions={predictions}
@@ -694,6 +592,8 @@ const App = (): React.JSX.Element => {
         jerk={jerk}
         emailData={emailData}
         handleEmail={handleEmail}
+        predict={predictLabel}
+        isLoading={isLoading}
       />
       <TouchableOpacity
         onPress={() => setTrackingModalOpen(true)}
