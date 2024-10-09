@@ -39,16 +39,12 @@ interface TrackingModalProps {
   isLoading: boolean;
   predLabel: string;
   predReps: number;
-  setPredLabel: (label: string) => void;
-  setPredReps: (reps: number) => void;
   chartData: number[];
   peaks: number[];
   predictions: Prediction[];
   quality: number;
   jerk: number;
-  emailData: EmailData;
-  handleEmail: (data: EmailData) => void;
-  resetRecordedData: () => void;
+  // emailData: EmailData | null;
   recordedData: {
     accX: number[];
     accY: number[];
@@ -57,6 +53,7 @@ interface TrackingModalProps {
     gyroY: number[];
     gyroZ: number[];
   };
+  resetRecordedData: () => void;
 }
 
 const TrackingModal: React.FC<TrackingModalProps> = ({
@@ -70,16 +67,16 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   isLoading, //unused, vllt noch implementieren (ladeindikator)
   predLabel,
   predReps,
-  setPredLabel,
-  setPredReps,
+  // setPredLabel,
+  // setPredReps,
   resetRecordedData,
   chartData,
   peaks,
   predictions,
   quality,
   jerk,
-  emailData,
-  handleEmail,
+  //emailData,
+  //handleEmail,
 }) => {
   const [showButton, setShowButton] = useState<boolean>(true);
   const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
@@ -122,8 +119,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
     setTrackingModalOpen(false);
     setIsTracking(false);
     resetTimeElapsed();
-    setPredLabel('');
-    setPredReps(0);
+    resetRecordedData();
     resetRecordedData();
     setShowButton(true);
   };
@@ -148,11 +144,12 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
             </Text>
           </TouchableOpacity>
         )}
-        <Text style={styles.timeText}>Zeit: {timeElapsed} Sekunden</Text>
+        {/* <Text style={styles.timeText}>Zeit: {timeElapsed} Sekunden</Text> */}
 
         {/* Anzeige der Ergebnisse nach dem Tracking */}
         {!isTracking && timeElapsed !== 0 && (
           <ScrollView contentContainerStyle={styles.resultsContainer}>
+            <Text style={styles.timeText}>Zeit: {timeElapsed} Sekunden</Text>
             <ChartComponent chartData={chartData} peaks={peaks} />
 
             {/* Anzeige der Vorhersagen */}
@@ -180,7 +177,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
               <Button
                 title="SAVE"
                 onPress={() => {
-                  handleEmail(emailData);
+                  //handleEmail(emailData);
                   onClose();
                 }}
                 color="blue"

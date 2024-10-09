@@ -25,7 +25,6 @@ const useSensorData = (isTracking: boolean) => {
     gyroY: [],
     gyroZ: [],
   });
-  console.log('recordedData', recordedData);
 
   // Funktion zum Zurücksetzen der aufgezeichneten Daten
   const resetRecordedData = () => {
@@ -79,8 +78,7 @@ const useSensorData = (isTracking: boolean) => {
         );
     } else {
       // Wenn das Tracking stoppt, setzen wir die Daten zurück
-      //resetRecordedData();
-      console.log('never reset');
+      resetRecordedData();
     }
 
     // Bereinigen der Abonnements bei Komponentenentfernung oder Statusänderung
