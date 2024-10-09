@@ -13,32 +13,67 @@ import TrackingModal from './components/TrackingModal';
 const {sgg} = require('ml-savitzky-golay-generalized');
 import {findPeaks} from './components/FindPeaks';
 import * as numeric from 'numeric';
-const {Matrix} = require('ml-matrix');
+import {Matrix} from 'ml-matrix';
+// Ändern Sie den Import von PCA, um den Standardexport zu verwenden
 const {PCA} = require('ml-pca');
 import email from 'react-native-email';
 
-function App(): React.JSX.Element {
+// Typendefinition für die Email-Datenstruktur
+type EmailData = {
+  rawX: number[];
+  rawY: number[];
+  rawZ: number[];
+  smoothedX: number[];
+  smoothedY: number[];
+  smoothedZ: number[];
+  normalizedX: number[];
+  normalizedY: number[];
+  normalizedZ: number[];
+  pca: number[];
+  peaks: number[];
+  label: string;
+};
+
+// Typendefinition für Vorhersagen des Modells
+type Prediction = {
+  label: string;
+  probability: number;
+};
+
+const App = (): React.JSX.Element => {
+  // Zustandsvariablen für die Modaleröffnung und Modellstatus
   const [trackingModalOpen, setTrackingModalOpen] = useState<boolean>(false);
-  const [model, setModel] = useState<any>(null);
+  const [model, setModel] = useState<any>(null); // TODO: Definiere einen spezifischen Typ für das Modell
   const [isTracking, setIsTracking] = useState<boolean>(false);
   const [predReps, setPredReps] = useState<number>(0);
   const [predLabel, setPredLabel] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [recordedData, setRecordedData] = useState({
-    accX: [] as number[],
-    accY: [] as number[],
-    accZ: [] as number[],
-    gyroX: [] as number[],
-    gyroY: [] as number[],
-    gyroZ: [] as number[],
+
+  // Zustandsvariable für aufgezeichnete Sensordaten
+  const [recordedData, setRecordedData] = useState<{
+    accX: number[];
+    accY: number[];
+    accZ: number[];
+    gyroX: number[];
+    gyroY: number[];
+    gyroZ: number[];
+  }>({
+    accX: [],
+    accY: [],
+    accZ: [],
+    gyroX: [],
+    gyroY: [],
+    gyroZ: [],
   });
+
+  // Weitere Zustandsvariablen für die Zeitmessung, Peaks, Diagrammdaten usw.
   const [timeElapsed, setTimeElapsed] = useState<number>(0);
   const [peaks, setPeaks] = useState<number[]>([]);
   const [chartData, setChartData] = useState<number[]>([]);
-  const [output, setOutput] = useState([0.0, 0.0, 0.0, 0.0]);
   const [quality, setQuality] = useState<number>(0);
   const [jerk, setJerk] = useState<number>(0);
 
+  // Zustandsvariable für die Email-Daten
   const [emailData, setEmailData] = useState<EmailData>({
     rawX: [],
     rawY: [],
@@ -54,45 +89,55 @@ function App(): React.JSX.Element {
     label: '',
   });
 
-  type Prediction = {
-    label: string;
-    probability: number;
-  };
+  // Zustandsvariable für die Modellvorhersagen
   const [predictions, setPredictions] = useState<Prediction[]>([]);
 
-  //loads the modal on Open
+  // Maximale Sequenzlänge für das Modell
+  const maxLength = 29;
+
+  // Klassennamen, die das Modell vorhersagt
+  const classNames = ['PullUp', 'PushUp', 'SitUp', 'Squat'];
+
+  /**
+   * Lädt das TensorFlow Lite Modell beim Start der App.
+   */
   useEffect(() => {
     const loadModel = async () => {
       try {
-        //const loadedModel = await loadTensorflowModel(require('./android/app/src/main/assets/newSplitModel.tflite'));
         const loadedModel = await loadTensorflowModel(
           require('./android/app/src/main/assets/modelShort.tflite'),
         );
         setModel(loadedModel);
-        console.log(loadModel, 'Model loaded successfully');
+        console.log('Model loaded successfully');
       } catch (error) {
         console.error('Error loading model:', error);
       } finally {
         setIsLoading(false);
       }
     };
+
     loadModel();
   }, []);
 
-  // listens to isTracking, starts Tracking of Sensordata and Time
+  /**
+   * Verwalten der Sensorüberwachung basierend auf dem Tracking-Status.
+   */
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
     let accelerometerSubscription: Subscription | null = null;
     let gyroscopeSubscription: Subscription | null = null;
 
     if (isTracking) {
-      const startTime = Date.now() - timeElapsed; // Startzeitpunkt unter Berücksichtigung der bereits verstrichenen Zeit
+      const startTime = Date.now() - timeElapsed;
       interval = setInterval(() => {
         setTimeElapsed(Date.now() - startTime);
-      }, 1000); // Zeit alle 1 Sekunde aktualisieren
-      setUpdateIntervalForType(SensorTypes.accelerometer, 100); // Update every 100ms
-      setUpdateIntervalForType(SensorTypes.gyroscope, 100); // Update every 100ms
+      }, 1000); // Aktualisierung der verstrichenen Zeit alle 1 Sekunde
 
+      // Setze Aktualisierungsintervall für Sensoren auf 100ms
+      setUpdateIntervalForType(SensorTypes.accelerometer, 100);
+      setUpdateIntervalForType(SensorTypes.gyroscope, 100);
+
+      // Abonnieren der Accelerometer-Daten
       accelerometerSubscription = accelerometer
         .pipe(map(({x, y, z}) => ({x, y, z})))
         .subscribe(
@@ -104,9 +149,10 @@ function App(): React.JSX.Element {
               accZ: [...prevState.accZ, sensorData.z],
             }));
           },
-          error => console.log('The sensor is not available', error),
+          error => console.log('Accelerometer not available:', error),
         );
 
+      // Abonnieren der Gyroskop-Daten
       gyroscopeSubscription = gyroscope
         .pipe(map(({x, y, z}) => ({x, y, z})))
         .subscribe(
@@ -118,13 +164,15 @@ function App(): React.JSX.Element {
               gyroZ: [...prevState.gyroZ, sensorData.z],
             }));
           },
-          error => console.log('The sensor is not available', error),
+          error => console.log('Gyroscope not available:', error),
         );
     } else if (!isTracking && timeElapsed !== 0) {
       if (interval) {
-        clearInterval(interval); // Intervall stoppen, wenn isTracking auf false gesetzt wird
+        clearInterval(interval); // Stoppe das Intervall, wenn das Tracking gestoppt wird
       }
     }
+
+    // Bereinigen der Abonnements und Intervalle bei Komponentenentfernung oder Statusänderung
     return () => {
       if (accelerometerSubscription) {
         accelerometerSubscription.unsubscribe();
@@ -132,70 +180,102 @@ function App(): React.JSX.Element {
       if (gyroscopeSubscription) {
         gyroscopeSubscription.unsubscribe();
       }
-      clearInterval(interval);
+      if (interval) {
+        clearInterval(interval);
+      }
     };
   }, [isTracking]);
 
-  const maxLength = 29;
-
-  const class_names = ['PullUp', 'PushUp', 'SitUp', 'Squat'];
-
+  /**
+   * Funktion zum Auffüllen oder Trunkieren einer Sequenz auf eine maximale Länge.
+   *
+   * @param sequence - Die Originalsequenz.
+   * @param maxLength - Die gewünschte maximale Länge.
+   * @returns Eine neue Sequenz mit gefüllten oder getrunkierten Werten.
+   */
   function padSequence(sequence: number[], maxLength: number): number[] {
     if (sequence.length >= maxLength) {
       return sequence.slice(0, maxLength);
     }
-    const paddedSequence = new Array(maxLength).fill(0);
-    for (let i = 0; i < sequence.length; i++) {
-      paddedSequence[i] = sequence[i];
-    }
-    return paddedSequence;
+    return [...sequence, ...new Array(maxLength - sequence.length).fill(0)];
   }
 
-  //filter method, adjusts the windowsize, if the length of the data isnt as big
+  /**
+   * Wendet den Savitzky-Golay-Filter zur Glättung der Daten an.
+   *
+   * @param data - Die rohen Daten.
+   * @param windowSize - Die Fenstergröße für den Filter.
+   * @param polynomialOrder - Der Polynomgrad für den Filter.
+   * @returns Die geglätteten Daten.
+   */
   const applySavitzkyGolayFilter = (
     data: number[],
     windowSize: number,
     polynomialOrder: number,
-  ) => {
+  ): number[] => {
     if (data.length < windowSize) {
       console.warn(
         'Data length is less than window size, reducing window size to match data length.',
       );
-      windowSize = data.length; // Fenstergröße auf Datenlänge reduzieren
+      windowSize = data.length; // Reduziere die Fenstergröße auf die Datenlänge
     }
-    const options = {windowSize, polynomialOrder};
     try {
+      // Korrigierte Aufrufsyntax: sgg(data, options)
+      const options = {windowSize, polynomialOrder};
       return sgg(data, options);
     } catch (error) {
       console.error('Error applying Savitzky-Golay filter:', error);
-      return data; // Rückgabe der ursprünglichen Daten im Fehlerfall hier ggf einen anderen filter anwenden oä
+      return data; // Rückgabe der ursprünglichen Daten im Fehlerfall
     }
   };
 
+  /**
+   * Subtrahiert den Mittelwert von den Daten.
+   *
+   * @param data - Die Datenarray.
+   * @returns Das Mittelwert-subtrahierte Datenarray.
+   */
   function subtractMean(data: number[]): number[] {
     const mean = numeric.sum(data) / data.length;
-    return data?.map(value => value - mean);
+    return data.map(value => value - mean);
   }
 
+  /**
+   * Normalisiert die Daten auf den Bereich [-1, 1].
+   *
+   * @param data - Die Datenarray.
+   * @returns Das normalisierte Datenarray.
+   */
   function normalizeToRange(data: number[]): number[] {
-    const min: number = Math.min(...data);
-    const max: number = Math.max(...data);
-    const range: number = max - min;
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min;
 
     if (range === 0) {
       // Wenn alle Werte gleich sind, normalisiere zu 0
       return data.map(() => 0);
     }
 
-    return data.map((value: number) => {
-      return (2 * (value - min)) / range - 1;
-    });
+    return data.map(value => (2 * (value - min)) / range - 1);
   }
 
+  /**
+   * Invertiert die Werte eines Arrays.
+   *
+   * @param data - Die Datenarray.
+   * @returns Das invertierte Datenarray.
+   */
   function invertArray(data: number[]): number[] {
     return data.map(value => -value);
   }
 
+  /**
+   * Bereitet die Daten für das Modell vor, indem sie flach gemacht und validiert werden.
+   *
+   * @param paddedRep - Die gepolsterte Wiederholungsdaten.
+   * @param maxLength - Die maximale Sequenzlänge.
+   * @returns Das Merkmalsarray, bereit für die Model-Eingabe.
+   */
   const prepareDataForModel = (
     paddedRep: {
       accX: number[];
@@ -207,30 +287,27 @@ function App(): React.JSX.Element {
     },
     maxLength: number,
   ): number[] => {
-    const features = [];
+    const features: number[] = [];
     for (let i = 0; i < maxLength; i++) {
-      if (
-        typeof paddedRep.accX[i] !== 'number' ||
-        typeof paddedRep.accY[i] !== 'number' ||
-        typeof paddedRep.accZ[i] !== 'number' ||
-        typeof paddedRep.gyroX[i] !== 'number' ||
-        typeof paddedRep.gyroY[i] !== 'number' ||
-        typeof paddedRep.gyroZ[i] !== 'number'
-      ) {
-        console.error(`Invalid sensor data at index ${i}`);
-        return []; // Rückgabe eines leeren Arrays bei ungültigen Daten
-      }
-
-      features.push(
+      const sensors = [
         paddedRep.accX[i],
         paddedRep.accY[i],
         paddedRep.accZ[i],
         paddedRep.gyroX[i],
         paddedRep.gyroY[i],
         paddedRep.gyroZ[i],
-      );
+      ];
+
+      // Validierung der Sensordaten
+      if (sensors.some(sensor => typeof sensor !== 'number')) {
+        console.error(`Invalid sensor data at index ${i}`);
+        return []; // Rückgabe eines leeren Arrays bei ungültigen Daten
+      }
+
+      features.push(...sensors);
     }
 
+    // Überprüfung der Merkmalslänge
     if (features.length !== maxLength * 6) {
       console.log('Feature length does not match expected length');
       return []; // Rückgabe eines leeren Arrays bei falscher Länge
@@ -239,7 +316,24 @@ function App(): React.JSX.Element {
     return features;
   };
 
-  function padReps(rep: any, targetLength: number): any {
+  /**
+   * Polstert die Daten jeder Wiederholung auf die Zielsequenzlänge.
+   *
+   * @param rep - Die Daten der Wiederholung.
+   * @param targetLength - Die gewünschte Sequenzlänge nach dem Polstern.
+   * @returns Ein Objekt mit gepolsterten Sensordaten.
+   */
+  function padReps(
+    rep: {
+      accX: number[];
+      accY: number[];
+      accZ: number[];
+      gyroX: number[];
+      gyroY: number[];
+      gyroZ: number[];
+    },
+    targetLength: number,
+  ) {
     return {
       accX: padSequence(rep.accX, targetLength),
       accY: padSequence(rep.accY, targetLength),
@@ -250,56 +344,38 @@ function App(): React.JSX.Element {
     };
   }
 
+  /**
+   * Berechnet den Pearson-Korrelationskoeffizienten zwischen zwei Arrays.
+   *
+   * @param arr1 - Erstes Datenarray.
+   * @param arr2 - Zweites Datenarray.
+   * @returns Der Korrelationskoeffizient.
+   */
   function calculateCorrelation(arr1: number[], arr2: number[]): number {
     const n = arr1.length;
-    const mean1 = arr1.reduce((sum, value) => sum + value, 0) / n;
-    const mean2 = arr2.reduce((sum, value) => sum + value, 0) / n;
+    const mean1 = numeric.sum(arr1) / n;
+    const mean2 = numeric.sum(arr2) / n;
 
     const numerator = arr1.reduce(
       (sum, value, i) => sum + (value - mean1) * (arr2[i] - mean2),
       0,
     );
     const denominator = Math.sqrt(
-      arr1.reduce((sum, value) => sum + (value - mean1) ** 2, 0) *
-        arr2.reduce((sum, value) => sum + (value - mean2) ** 2, 0),
+      numeric.sum(arr1.map(value => Math.pow(value - mean1, 2))) *
+        numeric.sum(arr2.map(value => Math.pow(value - mean2, 2))),
     );
 
     return denominator === 0 ? 0 : numerator / denominator;
   }
 
-  // function segmentReps(normalizedPC1: number[], peaks: number[]): number[][] {
-  //   const segments: number[][] = [];
-  //   for (let i = 0; i < peaks.length - 1; i++) {
-  //     segments.push(normalizedPC1.slice(peaks[i], peaks[i + 1]));
-  //   }
-  //   return segments;
-  // }
-
-  // function calculateSimilarity(segment1: number[], segment2: number[]): number {
-  //   const n = Math.min(segment1.length, segment2.length);
-  //   let sum = 0;
-
-  //   for (let i = 0; i < n; i++) {
-  //     sum += (segment1[i] - segment2[i]) ** 2;
-  //   }
-
-  //   return 1 / (1 + Math.sqrt(sum / n)); // Wert zwischen 0 und 1
-  // }
-
-  // function calculateOverallSimilarity(segments: number[][]): number {
-  //   let totalSimilarity = 0;
-  //   let count = 0;
-
-  //   for (let i = 0; i < segments.length; i++) {
-  //     for (let j = i + 1; j < segments.length; j++) {
-  //       totalSimilarity += calculateSimilarity(segments[i], segments[j]);
-  //       count++;
-  //     }
-  //   }
-
-  //   return count === 0 ? 0 : totalSimilarity / count;
-  // }
-
+  /**
+   * Berechnet den durchschnittlichen Jerk (Änderungsrate der Beschleunigung) für die gesamte Übung.
+   *
+   * @param accX - Beschleunigungsdaten auf der X-Achse.
+   * @param accY - Beschleunigungsdaten auf der Y-Achse.
+   * @param accZ - Beschleunigungsdaten auf der Z-Achse.
+   * @returns Der durchschnittliche Jerk-Wert.
+   */
   function calculateOverallJerk(
     accX: number[],
     accY: number[],
@@ -314,54 +390,30 @@ function App(): React.JSX.Element {
       totalJerk += Math.sqrt(jerkX[i] ** 2 + jerkY[i] ** 2 + jerkZ[i] ** 2);
     }
 
-    // Durchschnittlicher Jerk-Wert für die gesamte Übung
-    return totalJerk / jerkX.length;
+    return totalJerk / jerkX.length; // Durchschnittlicher Jerk
   }
 
-  function calculateCombinedJerk(
-    accX: number[],
-    accY: number[],
-    accZ: number[],
-  ): number[] {
-    const jerkX = calculateDerivative(accX);
-    const jerkY = calculateDerivative(accY);
-    const jerkZ = calculateDerivative(accZ);
-
-    let combinedJerk = [];
-    for (let i = 0; i < jerkX.length; i++) {
-      combinedJerk.push(
-        Math.sqrt(jerkX[i] ** 2 + jerkY[i] ** 2 + jerkZ[i] ** 2),
-      );
-    }
-    return combinedJerk;
-  }
-
-  const calculateDerivative = (data: number[]) => {
-    let derivative = [];
+  /**
+   * Berechnet die Ableitung eines Datenarrays.
+   *
+   * @param data - Das Datenarray.
+   * @returns Das Ableitungsarray.
+   */
+  const calculateDerivative = (data: number[]): number[] => {
+    const derivative: number[] = [];
     for (let i = 1; i < data.length; i++) {
       derivative.push(data[i] - data[i - 1]);
     }
     return derivative;
   };
 
-  function calculateRepJerk(
-    accX: number[],
-    accY: number[],
-    accZ: number[],
-  ): number {
-    const jerkX = calculateDerivative(accX);
-    const jerkY = calculateDerivative(accY);
-    const jerkZ = calculateDerivative(accZ);
-
-    let totalJerk = 0;
-    for (let i = 0; i < jerkX.length; i++) {
-      totalJerk += Math.sqrt(jerkX[i] ** 2 + jerkY[i] ** 2 + jerkZ[i] ** 2);
-    }
-
-    // Durchschnittlicher Jerk-Wert für die gesamte Rep
-    return totalJerk / jerkX.length;
-  }
-
+  /**
+   * Berechnet die durchschnittliche Ähnlichkeit zwischen allen Paaren von Wiederholungen.
+   *
+   * @param extractedData - Die extrahierten Wiederholungsdaten.
+   * @param targetLength - Die Zielsequenzlänge nach dem Polstern.
+   * @returns Der Gesamtähnlichkeitswert.
+   */
   function calculateOverallSimilarity(
     extractedData: Record<string, any>,
     targetLength: number,
@@ -375,28 +427,20 @@ function App(): React.JSX.Element {
         const rep1 = padReps(extractedData[repKeys[i]], targetLength);
         const rep2 = padReps(extractedData[repKeys[j]], targetLength);
 
-        // Berechne die Korrelationen
-        const corrAccX = calculateCorrelation(rep1.accX, rep2.accX);
-        const corrAccY = calculateCorrelation(rep1.accY, rep2.accY);
-        const corrAccZ = calculateCorrelation(rep1.accZ, rep2.accZ);
-        const corrGyroX = calculateCorrelation(rep1.gyroX, rep2.gyroX);
-        const corrGyroY = calculateCorrelation(rep1.gyroY, rep2.gyroY);
-        const corrGyroZ = calculateCorrelation(rep1.gyroZ, rep2.gyroZ);
-
-        // Berechne die euklidische Norm des Jerks für jede Rep
-        // const jerk1 = calculateCombinedJerk(rep1.accX, rep1.accY, rep1.accZ);
-        // const jerk2 = calculateCombinedJerk(rep2.accX, rep2.accY, rep2.accZ);
-        // console.log('jerk1', jerk1);
-        // console.log('jerk2:', jerk2);
-
-        // Berechne die Korrelation der kombinierten Jerk-Werte
-        // const corrJerk = calculateCorrelation(jerk1, jerk2);
-        // console.log('corrJerk:', corrJerk);
+        // Berechne die Korrelationen für jede Sensorachse
+        const correlations = [
+          calculateCorrelation(rep1.accX, rep2.accX),
+          calculateCorrelation(rep1.accY, rep2.accY),
+          calculateCorrelation(rep1.accZ, rep2.accZ),
+          calculateCorrelation(rep1.gyroX, rep2.gyroX),
+          calculateCorrelation(rep1.gyroY, rep2.gyroY),
+          calculateCorrelation(rep1.gyroZ, rep2.gyroZ),
+        ];
 
         // Durchschnittliche Korrelation über alle Achsen
         const avgCorrelation =
-          (corrAccX + corrAccY + corrAccZ + corrGyroX + corrGyroY + corrGyroZ) /
-          6;
+          correlations.reduce((sum, corr) => sum + corr, 0) /
+          correlations.length;
 
         totalCorrelation += avgCorrelation;
         count++;
@@ -405,22 +449,20 @@ function App(): React.JSX.Element {
 
     return count === 0 ? 0 : totalCorrelation / count;
   }
-  const formatArray = (arr: number[]): string => arr.join(', ');
-  type EmailData = {
-    rawX: number[];
-    rawY: number[];
-    rawZ: number[];
-    smoothedX: number[];
-    smoothedY: number[];
-    smoothedZ: number[];
-    normalizedX: number[];
-    normalizedY: number[];
-    normalizedZ: number[];
-    pca: number[];
-    peaks: number[];
-    label: string;
-  };
 
+  /**
+   * Formatiert ein Zahlenarray zu einem kommagetrennten String.
+   *
+   * @param arr - Das Zahlenarray.
+   * @returns Ein kommagetrennter String.
+   */
+  const formatArray = (arr: number[]): string => arr.join(', ');
+
+  /**
+   * Handhabt das Senden einer E-Mail mit den aufgezeichneten und verarbeiteten Daten.
+   *
+   * @param emailData - Die Daten, die in die E-Mail aufgenommen werden sollen.
+   */
   const handleEmail = ({
     rawX,
     rawY,
@@ -439,17 +481,18 @@ function App(): React.JSX.Element {
 
     // Erstelle den E-Mail-Body mit den Daten
     const body = `
-      Label: ${label}\n
-      rawX: [${formatArray(rawX)}]\n
-      rawY: [${formatArray(rawY)}]\n
-      rawZ: [${formatArray(rawZ)}]\n
-      smoothedX: [${formatArray(smoothedX)}]\n
-      smoothedY: [${formatArray(smoothedY)}]\n
-      smoothedZ: [${formatArray(smoothedZ)}]\n
-      normalizedX: [${formatArray(normalizedX)}]\n
-      normalizedY: [${formatArray(normalizedY)}]\n
-      normalizedZ: [${formatArray(normalizedZ)}]\n
-      PCA: [${formatArray(pca)}]\n
+      Label: ${label}
+
+      rawX: [${formatArray(rawX)}]
+      rawY: [${formatArray(rawY)}]
+      rawZ: [${formatArray(rawZ)}]
+      smoothedX: [${formatArray(smoothedX)}]
+      smoothedY: [${formatArray(smoothedY)}]
+      smoothedZ: [${formatArray(smoothedZ)}]
+      normalizedX: [${formatArray(normalizedX)}]
+      normalizedY: [${formatArray(normalizedY)}]
+      normalizedZ: [${formatArray(normalizedZ)}]
+      PCA: [${formatArray(pca)}]
       Peaks: [${formatArray(peaks)}]
     `;
 
@@ -459,17 +502,23 @@ function App(): React.JSX.Element {
       body: body,
       checkCanOpen: false,
     }).catch(console.error);
-    console.log('email sent! ');
+    console.log('Email sent!');
   };
 
+  /**
+   * Funktion zur Vorhersage des Labels basierend auf den aufgezeichneten Sensordaten.
+   */
   const predictLabel = async () => {
+    // Daten vorverarbeiten: Glätten und Mittelwert subtrahieren
     const filteredYData = applySavitzkyGolayFilter(recordedData.accY, 9, 3);
     const filteredXData = applySavitzkyGolayFilter(recordedData.accX, 9, 3);
     const filteredZData = applySavitzkyGolayFilter(recordedData.accZ, 9, 3);
+
     const yDataMeanSubtracted = subtractMean(filteredYData);
     const zDataMeanSubtracted = subtractMean(filteredZData);
     const xDataMeanSubtracted = subtractMean(filteredXData);
 
+    // Jerk berechnen
     const avgJerk = calculateOverallJerk(
       filteredXData,
       filteredYData,
@@ -477,9 +526,10 @@ function App(): React.JSX.Element {
     );
 
     setJerk(avgJerk);
-    console.log('Average Jerk for the entire exercise:', avgJerk);
+    // console.log('Average Jerk for the entire exercise:', avgJerk);
 
-    let dataMatrix = new Matrix(xDataMeanSubtracted.length, 3); // Erstellt eine leere Matrix mit der richtigen Größe
+    // Erstelle eine Datenmatrix für PCA
+    const dataMatrix = new Matrix(xDataMeanSubtracted.length, 3);
     for (let i = 0; i < xDataMeanSubtracted.length; i++) {
       dataMatrix.setRow(i, [
         xDataMeanSubtracted[i],
@@ -487,33 +537,31 @@ function App(): React.JSX.Element {
         zDataMeanSubtracted[i],
       ]);
     }
-    let pca = new PCA(dataMatrix);
-    let transformedData = pca.predict(dataMatrix).to2DArray(); // Konvertiert das Ergebnis in ein 2D-Array
 
-    // Die erste Hauptkomponente extrahieren (wichtigste Komponente)
-    let firstPrincipalComponent: number[] = transformedData.map(
+    // PCA anwenden
+    const pca = new PCA(dataMatrix);
+    const transformedData = pca.predict(dataMatrix).to2DArray();
+
+    // Erste Hauptkomponente extrahieren
+    const firstPrincipalComponent: number[] = transformedData.map(
       (row: number[]) => row[0],
     );
 
+    // Normalisieren der ersten Hauptkomponente
     const normalizedPC1 = normalizeToRange(firstPrincipalComponent);
     setChartData(normalizedPC1);
+
+    // Peaks finden
     const peaks =
       normalizedPC1[0] > 0
-        ? findPeaks(normalizedPC1, 7, 0, 0)
-        : findPeaks(invertArray(normalizedPC1), 7, 0, 0);
+        ? findPeaks(normalizedPC1, 7, 0, -0.3)
+        : findPeaks(invertArray(normalizedPC1), 7, 0, 0.3);
 
     setPeaks(peaks);
     setPredReps(peaks.length - 1);
 
-    // const segments = segmentReps(normalizedPC1, peaks);
-
-    // Berechne die Gesamtähnlichkeit
-    // const similarityScore = calculateOverallSimilarity(segments);
-    // setQuality(similarityScore);
-
-    // console.log('Overall Similarity:', similarityScore);
-
-    const extractedData: any = {};
+    // Extrahiere Datensegmente zwischen Peaks
+    const extractedData: Record<string, any> = {};
     for (let i = 0; i < peaks.length - 1; i++) {
       const start = peaks[i];
       const end = peaks[i + 1];
@@ -522,8 +570,8 @@ function App(): React.JSX.Element {
       const segmentAccY = recordedData.accY.slice(start, end);
       const segmentAccZ = recordedData.accZ.slice(start, end);
       const segmentGyroX = recordedData.gyroX.slice(start, end);
-      const segmentGyroZ = recordedData.gyroZ.slice(start, end);
       const segmentGyroY = recordedData.gyroY.slice(start, end);
+      const segmentGyroZ = recordedData.gyroZ.slice(start, end);
 
       extractedData[`Rep${i + 1}`] = {
         accX: segmentAccX,
@@ -535,51 +583,67 @@ function App(): React.JSX.Element {
       };
     }
 
-    const targetLength = 27; // Ziel-Länge nach Padding, z.B. 100
+    // Berechne die Gesamtähnlichkeit zwischen den Wiederholungen
+    const targetLength = 27; // Ziel-Länge nach Padding
     const overallSimilarity = calculateOverallSimilarity(
       extractedData,
       targetLength,
     );
     setQuality(overallSimilarity);
-    console.log('Overall Similarity:', overallSimilarity);
+    // console.log('Overall Similarity:', overallSimilarity);
 
-    const predictions: {label: string; probability: number}[] = [];
+    // Modellvorhersagen durchführen
+    const predictionsArray: Prediction[] = [];
     for (let i = 1; i <= 3; i++) {
+      // Annahme: Wir analysieren die ersten 3 Wiederholungen
       const rep = extractedData[`Rep${i}`];
       if (!rep) {
         console.error(`No data in extractedData for Rep${i}`);
         continue;
       }
 
-      const paddedRep = {
-        accX: padSequence(rep.accX, maxLength),
-        accY: padSequence(rep.accY, maxLength),
-        accZ: padSequence(rep.accZ, maxLength),
-        gyroX: padSequence(rep.gyroX, maxLength),
-        gyroY: padSequence(rep.gyroY, maxLength),
-        gyroZ: padSequence(rep.gyroZ, maxLength),
-      };
-
+      // Daten polstern
+      const paddedRep = padReps(rep, maxLength);
       const preparedData = prepareDataForModel(paddedRep, maxLength);
-      const floaty = new Float32Array(preparedData);
-      const output = await model.run([floaty]);
+      if (preparedData.length === 0) {
+        continue;
+      }
 
-      const maxIndex = output[0].indexOf(Math.max(...output[0]));
-      console.log(`Rep${i} maxIndex:`, maxIndex);
-      predictions.push({
-        label: class_names[maxIndex],
-        probability: output[0][maxIndex],
-      });
+      // Daten in Float32Array umwandeln
+      const floatArray = new Float32Array(preparedData);
+
+      try {
+        // Modell ausführen
+        const output = await model.run([floatArray]);
+        const outputArray = output[0] as number[];
+        console.log('output array:', outputArray);
+
+        // Bestimme das maximale Ergebnis
+        const maxIndex = outputArray.indexOf(Math.max(...outputArray));
+        console.log(`Rep${i} maxIndex:`, maxIndex);
+
+        predictionsArray.push({
+          label: classNames[maxIndex],
+          probability: outputArray[maxIndex],
+        });
+      } catch (error) {
+        console.error(`Error during model prediction for Rep${i}:`, error);
+      }
     }
-    setPredictions(predictions);
 
-    // Bestimmen des finalen Labels basierend auf den ersten 3 Predictions
+    setPredictions(predictionsArray);
+
+    // Bestimme das finale Label basierend auf den Vorhersagen
     let finalLabel: string;
-    if (predictions[0].label === predictions[1].label) {
-      finalLabel = predictions[0].label;
+    if (
+      predictionsArray[0] &&
+      predictionsArray[1] &&
+      predictionsArray[0].label === predictionsArray[1].label
+    ) {
+      finalLabel = predictionsArray[0].label;
     } else {
       const votes: {[key: string]: number} = {};
-      predictions.forEach(pred => {
+      predictionsArray.forEach(pred => {
         if (!votes[pred.label]) votes[pred.label] = 0;
         votes[pred.label]++;
       });
@@ -589,6 +653,8 @@ function App(): React.JSX.Element {
     }
 
     setPredLabel(finalLabel);
+
+    // Setze die Email-Daten
     const emailData: EmailData = {
       rawX: recordedData.accX,
       rawY: recordedData.accY,
@@ -631,60 +697,41 @@ function App(): React.JSX.Element {
       />
       <TouchableOpacity
         onPress={() => setTrackingModalOpen(true)}
-        style={{
-          position: 'absolute',
-          width: 76,
-          height: 76,
-          alignItems: 'center',
-          justifyContent: 'center',
-          right: 20,
-          bottom: 20,
-          backgroundColor: '#03A9F4',
-          borderRadius: 69,
-          elevation: 8,
-        }}>
-        <Text style={{fontSize: 50, color: 'white'}}>+</Text>
+        style={styles.floatingButton}>
+        <Text style={styles.floatingButtonText}>+</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
-}
+};
 
+// Stylesheet zur Gestaltung der Komponenten
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
+    justifyContent: 'center', // Zentriere Inhalte vertikal
+    alignItems: 'center', // Zentriere Inhalte horizontal
   },
-  sensorDataContainer: {
-    marginBottom: 20,
+  floatingButton: {
+    position: 'absolute',
+    width: 76,
+    height: 76,
+    alignItems: 'center',
+    justifyContent: 'center',
+    right: 20,
+    bottom: 20,
+    backgroundColor: '#03A9F4',
+    borderRadius: 38, // Halbe Breite/Höhe für kreisförmigen Button
+    elevation: 8, // Schatten für Android
+    shadowColor: '#000', // Schattenfarbe für iOS
+    shadowOffset: {width: 0, height: 2}, // Schattenoffset für iOS
+    shadowOpacity: 0.25, // Schattenopacity für iOS
+    shadowRadius: 3.84, // Schattenradius für iOS
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  paragraph: {
-    fontSize: 16,
-    marginVertical: 2,
-  },
-  buttonContainer: {
-    marginTop: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  dataContainer: {
-    marginTop: 20,
-    width: '100%',
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  dataText: {
-    fontSize: 16,
+  floatingButtonText: {
+    fontSize: 50,
+    color: 'white',
+    lineHeight: 50, // Vertikale Zentrierung des Textes
   },
 });
 
