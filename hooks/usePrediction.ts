@@ -107,10 +107,11 @@ const usePrediction = ({model, recordedData}: UsePredictionProps) => {
     // Peaks finden
     const peaks =
       normalizedPC1[0] > 0
-        ? findPeaks(normalizedPC1, 7, 0, 0.3)
-        : findPeaks(invertArray(normalizedPC1), 7, 0, -0.3);
+        ? findPeaks(normalizedPC1, 7, 0, 0)
+        : findPeaks(invertArray(normalizedPC1), 7, 0, 0);
 
     setPeaks(peaks);
+    console.log('PEAKS:', peaks);
     setPredReps(peaks.length - 1);
 
     // Extrahiere Datensegmente zwischen Peaks

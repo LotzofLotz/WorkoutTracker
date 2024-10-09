@@ -41,12 +41,15 @@ interface CustomDecoratorProps {
 const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
   // Generiere X-Achsen-Labels dynamisch
   const generateXLabels = (length: number): string[] => {
-    const numLabels = Math.floor(length / 10) || 1; // Verhindere Division durch Null
-    const interval = Math.floor(length / numLabels);
-
-    return Array.from({length}, (_, i) =>
-      i % interval === 0 ? `${Math.floor(i / interval)}[s]` : '',
-    );
+    const labels: string[] = [];
+    for (let i = 0; i < length; i++) {
+      if (i % 10 === 0) {
+        labels.push(`${i / 10}s`);
+      } else {
+        labels.push('');
+      }
+    }
+    return labels;
   };
 
   // Definiere den CustomDecorator mit Typen
@@ -94,14 +97,14 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
               data: chartData,
               color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
               strokeWidth: 2,
-              withDots: false, // Deaktiviere Punkte, um Interferenzen zu vermeiden
+              withDots: false,
             },
           ],
         }}
-        width={screenWidth - 40} // Bildschirmbreite minus Padding
+        width={screenWidth - 40}
         height={220}
         yLabelsOffset={10}
-        fromZero={false} // Setze fromZero auf false, um negative Werte zu erlauben
+        fromZero={false}
         chartConfig={chartConfig}
         bezier
         style={styles.chartStyle}
@@ -109,7 +112,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
         withVerticalLabels={true}
         withHorizontalLines={true}
         withVerticalLines={true}
-        withInnerLines={false}
+        withInnerLines={true}
         segments={4}
         xLabelsOffset={-5}
         decorator={({width, height}: {width: number; height: number}) => (
@@ -124,7 +127,8 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
 const styles = StyleSheet.create({
   container: {
     padding: 0,
-    flex: 1,
+    // flex: 1,
+    width: '100%',
   },
   loaderContainer: {
     flex: 1,

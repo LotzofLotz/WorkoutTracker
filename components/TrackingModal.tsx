@@ -149,9 +149,10 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
         {/* Anzeige der Ergebnisse nach dem Tracking */}
         {!isTracking && timeElapsed !== 0 && (
           <ScrollView contentContainerStyle={styles.resultsContainer}>
-            <Text style={styles.timeText}>Zeit: {timeElapsed} Sekunden</Text>
-            <ChartComponent chartData={chartData} peaks={peaks} />
-
+            {/* <Text style={styles.timeText}>Zeit: {timeElapsed} Sekunden</Text> */}
+            <View style={{left: -20}}>
+              <ChartComponent chartData={chartData} peaks={peaks} />
+            </View>
             {/* Anzeige der Vorhersagen */}
             {predictions.map((prediction, index) => (
               <Text style={styles.predictionText} key={index}>
@@ -173,7 +174,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
             <Text style={styles.repsText}>REPS: {predReps}</Text>
 
             {/* Button zum Speichern der Daten via E-Mail */}
-            <View style={styles.saveButtonContainer}>
+            {/* <View style={styles.saveButtonContainer}>
               <Button
                 title="SAVE"
                 onPress={() => {
@@ -182,7 +183,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
                 }}
                 color="blue"
               />
-            </View>
+            </View> */}
           </ScrollView>
         )}
       </View>
@@ -197,12 +198,12 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: 'white',
     margin: '4%',
-    padding: '4%',
+    // padding: '4%',
     borderRadius: 10,
-    width: '100%',
-    minHeight: '60%',
-    alignItems: 'center',
-    justifyContent: 'center',
+    // width: '100%',
+    // minHeight: '60%',
+    // alignItems: 'center',
+    // justifyContent: 'center',
   },
   startStopButton: {
     width: 200,
@@ -217,13 +218,14 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   timeText: {
+    textAlign: 'center',
     color: 'black',
     marginTop: 20,
     fontSize: 18,
   },
   resultsContainer: {
     width: '100%',
-    alignItems: 'center',
+    // alignItems: 'center',
     marginTop: 20,
     paddingBottom: 20, // Optional: fügt unten etwas Abstand hinzu
   },
