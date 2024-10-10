@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "d3-shape": "^3.2.0",
+    "hermes-engine": "^0.11.0",
     "ml-matrix": "^6.11.1",
     "ml-pca": "^4.1.1",
     "ml-savitzky-golay-generalized": "^4.2.0",

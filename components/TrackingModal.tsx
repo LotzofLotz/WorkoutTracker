@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {View, TouchableOpacity, Text, Button, StyleSheet} from 'react-native';
+import {View, TouchableOpacity, Text, StyleSheet} from 'react-native';
 import Modal from 'react-native-modal';
 import ChartComponent from './ChartComponent';
 import Sound from 'react-native-sound';
@@ -67,16 +67,12 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   isLoading, //unused, vllt noch implementieren (ladeindikator)
   predLabel,
   predReps,
-  // setPredLabel,
-  // setPredReps,
   resetRecordedData,
   chartData,
   peaks,
   predictions,
   quality,
   jerk,
-  //emailData,
-  //handleEmail,
 }) => {
   const [showButton, setShowButton] = useState<boolean>(true);
   const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
@@ -144,7 +140,6 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
             </Text>
           </TouchableOpacity>
         )}
-        {/* <Text style={styles.timeText}>Zeit: {timeElapsed} Sekunden</Text> */}
 
         {/* Anzeige der Ergebnisse nach dem Tracking */}
         {!isTracking && timeElapsed !== 0 && (
