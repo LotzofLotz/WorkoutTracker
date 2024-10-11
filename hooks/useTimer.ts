@@ -1,3 +1,4 @@
+// hooks/useTimer.ts
 import {useEffect, useRef, useState} from 'react';
 
 const useTimer = (isTracking: boolean) => {

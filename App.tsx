@@ -1,31 +1,89 @@
-import React, {useState} from 'react';
+// App.tsx
+import React, {useState, useEffect} from 'react';
 import {TouchableOpacity, SafeAreaView, StyleSheet, Text} from 'react-native';
 import TrackingModal from './components/TrackingModal';
+import SavedSetsComponent from './components/SavedSetsComponent';
 import useSensorData from './hooks/useSensorData';
 import useTimer from './hooks/useTimer';
 import useModel from './hooks/useModel';
 import usePrediction from './hooks/usePrediction';
+import {saveWorkoutSet, getWorkoutSets, WorkoutSet} from './storageService';
+import Toast from 'react-native-toast-message';
 
 const App = (): React.JSX.Element => {
   const [trackingModalOpen, setTrackingModalOpen] = useState<boolean>(false);
   const [isTracking, setIsTracking] = useState<boolean>(false);
+  const [sets, setSets] = useState<WorkoutSet[]>([]); // Zustand für gespeicherte Sets
+
   const {model, isLoading} = useModel();
   const {recordedData, resetRecordedData} = useSensorData(isTracking);
   const {timeElapsed, resetTimeElapsed} = useTimer(isTracking);
   const {
-    predictLabel,
-    predReps,
-    predLabel,
+    predictLabel, // Funktion
+    predReps, // Zahl
+    predLabel, // String
     peaks,
     chartData,
     quality,
     jerk,
-    emailData,
     predictions,
   } = usePrediction({model, recordedData});
 
+  // Funktion zum Laden der Sets beim Start
+  const loadSets = async () => {
+    try {
+      const fetchedSets = await getWorkoutSets();
+      setSets(fetchedSets);
+    } catch (error) {
+      console.error('Fehler beim Laden der Sets:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadSets();
+  }, [trackingModalOpen]);
+
+  // Funktion zum Hinzufügen eines neuen Sets
+  const addSet = async (newSet: WorkoutSet) => {
+    try {
+      await saveWorkoutSet(newSet);
+      setSets(prevSets => [...prevSets, newSet]); // Aktualisiere den Zustand
+      console.log('SET ADDED');
+      Toast.show({
+        type: 'success',
+        text1: 'Glückwunsch!',
+        text2: 'Set wurde erfolgreich gespeichert!',
+      });
+    } catch (error) {
+      console.error('Fehler beim Speichern des Sets:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Fehler',
+        text2: 'Beim Speichern des Sets ist ein Fehler aufgetreten.',
+      });
+    }
+  };
+
+  // Callback-Funktion, die von TrackingModal aufgerufen wird, um ein neues Set hinzuzufügen
+  const handleSaveAndClose = () => {
+    const newSet: WorkoutSet = {
+      timestamp: new Date().toISOString(),
+      label: predLabel, // Korrigierte Zuweisung
+      repetitions: predReps,
+    };
+    addSet(newSet);
+    resetTimeElapsed();
+    setTrackingModalOpen(false);
+  };
+
+  // Funktion zum Öffnen des Modals
+  const openModal = () => {
+    setTrackingModalOpen(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Tracking Modal */}
       <TrackingModal
         trackingModalOpen={trackingModalOpen}
         setTrackingModalOpen={setTrackingModalOpen}
@@ -35,24 +93,30 @@ const App = (): React.JSX.Element => {
         resetTimeElapsed={resetTimeElapsed}
         recordedData={recordedData}
         resetRecordedData={resetRecordedData}
-        //handleEmail={handleEmail}
-        predict={predictLabel}
+        predict={predictLabel} // Funktion weitergeben
         isLoading={isLoading}
-        predLabel={predLabel}
+        predLabel={predLabel} // String weitergeben
         predReps={predReps}
         chartData={chartData}
         peaks={peaks}
         predictions={predictions}
         quality={quality}
         jerk={jerk}
-        //emailData={emailData}
-        //isLoading={isLoading}
+        onSaveAndClose={handleSaveAndClose} // Übergabe des Callbacks
       />
+
+      {/* Anzeige der gespeicherten Sets */}
+      <SavedSetsComponent sets={sets} />
+
+      {/* Floating Button zum Öffnen des Modals */}
       <TouchableOpacity
-        onPress={() => setTrackingModalOpen(true)}
+        onPress={openModal} // Verwenden Sie die neue openModal-Funktion
         style={styles.floatingButton}>
         <Text style={styles.floatingButtonText}>+</Text>
       </TouchableOpacity>
+
+      {/* Toast-Nachrichten */}
+      <Toast />
     </SafeAreaView>
   );
 };
@@ -61,9 +125,7 @@ const App = (): React.JSX.Element => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center', // Zentriere Inhalte vertikal
-    alignItems: 'center', // Zentriere Inhalte horizontal
+    backgroundColor: '#fff', // Hintergrundfarbe der App
   },
   floatingButton: {
     position: 'absolute',

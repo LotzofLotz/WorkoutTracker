@@ -1,33 +1,21 @@
+// components/TrackingModal.tsx
 import React, {useState, useEffect} from 'react';
-import {View, TouchableOpacity, Text, StyleSheet} from 'react-native';
+import {
+  View,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 import Modal from 'react-native-modal';
 import ChartComponent from './ChartComponent';
 import Sound from 'react-native-sound';
-import {ScrollView} from 'react-native';
 
-// Typendefinition für Vorhersagen des Modells
 interface Prediction {
   label: string;
   probability: number;
 }
 
-// Typendefinition für Email-Daten
-interface EmailData {
-  rawX: number[];
-  rawY: number[];
-  rawZ: number[];
-  smoothedX: number[];
-  smoothedY: number[];
-  smoothedZ: number[];
-  normalizedX: number[];
-  normalizedY: number[];
-  normalizedZ: number[];
-  pca: number[];
-  peaks: number[];
-  label: string;
-}
-
-// Props-Typendefinition für die TrackingModal-Komponente
 interface TrackingModalProps {
   trackingModalOpen: boolean;
   setTrackingModalOpen: (open: boolean) => void;
@@ -37,14 +25,13 @@ interface TrackingModalProps {
   resetTimeElapsed: () => void;
   predict: () => Promise<void>;
   isLoading: boolean;
-  predLabel: string;
+  predLabel: string; // Erwartet ein string
   predReps: number;
   chartData: number[];
   peaks: number[];
   predictions: Prediction[];
   quality: number;
   jerk: number;
-  // emailData: EmailData | null;
   recordedData: {
     accX: number[];
     accY: number[];
@@ -54,6 +41,7 @@ interface TrackingModalProps {
     gyroZ: number[];
   };
   resetRecordedData: () => void;
+  onSaveAndClose: () => void; // Callback
 }
 
 const TrackingModal: React.FC<TrackingModalProps> = ({
@@ -64,7 +52,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   timeElapsed,
   resetTimeElapsed,
   predict,
-  isLoading, //unused, vllt noch implementieren (ladeindikator)
+  isLoading,
   predLabel,
   predReps,
   resetRecordedData,
@@ -73,6 +61,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   predictions,
   quality,
   jerk,
+  onSaveAndClose, // Empfang des Callbacks
 }) => {
   const [showButton, setShowButton] = useState<boolean>(true);
   const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
@@ -116,8 +105,14 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
     setIsTracking(false);
     resetTimeElapsed();
     resetRecordedData();
-    resetRecordedData();
     setShowButton(true);
+  };
+
+  const handleSaveAndClose = () => {
+    onSaveAndClose();
+    resetTimeElapsed();
+    setShowButton(true); // Rufe den Callback aus App.tsx auf
+    // onClose wird automatisch durch setTrackingModalOpen(false) in App.tsx aufgerufen
   };
 
   return (
@@ -125,11 +120,13 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
       isVisible={trackingModalOpen}
       onBackButtonPress={onClose}
       onDismiss={onClose}
-      // onRequestClose={onClose}
       style={styles.modal}
       animationIn="slideInUp"
       animationOut="slideOutDown"
-      backdropColor="#132224">
+      backdropColor="#132224"
+      useNativeDriver={true}
+      hideModalContentWhileAnimating={true}
+      avoidKeyboard={true}>
       <View style={styles.modalContent}>
         {showButton && (
           <TouchableOpacity
@@ -144,8 +141,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
         {/* Anzeige der Ergebnisse nach dem Tracking */}
         {!isTracking && timeElapsed !== 0 && (
           <ScrollView contentContainerStyle={styles.resultsContainer}>
-            {/* <Text style={styles.timeText}>Zeit: {timeElapsed} Sekunden</Text> */}
-            <View style={{left: -20}}>
+            <View style={styles.chartContainer}>
               <ChartComponent chartData={chartData} peaks={peaks} />
             </View>
             {/* Anzeige der Vorhersagen */}
@@ -168,17 +164,15 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
             <Text style={styles.labelText}>LABEL: {predLabel}</Text>
             <Text style={styles.repsText}>REPS: {predReps}</Text>
 
-            {/* Button zum Speichern der Daten via E-Mail */}
-            {/* <View style={styles.saveButtonContainer}>
-              <Button
-                title="SAVE"
-                onPress={() => {
-                  //handleEmail(emailData);
-                  onClose();
-                }}
-                color="blue"
-              />
-            </View> */}
+            {/* Verbesserter SAVE-Button */}
+            <View style={styles.saveButtonContainer}>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSaveAndClose} // Verwende den neuen Handler
+              >
+                <Text style={styles.saveButtonText}>SAVE</Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         )}
       </View>
@@ -188,71 +182,90 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
 
 const styles = StyleSheet.create({
   modal: {
-    alignItems: 'center',
+    justifyContent: 'center', // Vertikale Zentrierung
+    alignItems: 'center', // Horizontale Zentrierung
   },
   modalContent: {
-    backgroundColor: 'white',
-    margin: '4%',
-    // padding: '4%',
+    width: '100%',
+    backgroundColor: 'white', // Ändere die Farbe nach Bedarf
     borderRadius: 10,
-    // width: '100%',
-    // minHeight: '60%',
-    // alignItems: 'center',
-    // justifyContent: 'center',
+    padding: 5, // Innenabstand für den Inhalt
+    margin: 20, // Außenabstand, um das Modal vom Bildschirmrand zu entfernen
+    alignSelf: 'center', // Ermöglicht dem Modal, sich an den Inhalt anzupassen
+    flex: 0, // Verhindert, dass das Modal den gesamten Platz einnimmt
   },
   startStopButton: {
-    width: 200,
-    height: 200,
+    width: 250,
+    height: 250,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'red',
-    borderRadius: 20,
+    backgroundColor: '#ff4d4d', // Angepasste Farbe
+    borderRadius: 150, // Kreisförmig
+    marginBottom: 0, // Abstand zum nächsten Element
   },
   buttonText: {
-    fontSize: 38,
+    fontSize: 34, // Angepasste Schriftgröße
     color: 'white',
-  },
-  timeText: {
-    textAlign: 'center',
-    color: 'black',
-    marginTop: 20,
-    fontSize: 18,
+    fontWeight: 'bold',
   },
   resultsContainer: {
     width: '100%',
-    // alignItems: 'center',
-    marginTop: 20,
+    alignItems: 'center', // Zentriert den Inhalt horizontal
+    marginTop: 10,
     paddingBottom: 20, // Optional: fügt unten etwas Abstand hinzu
+  },
+  chartContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 20,
+    left: -25,
   },
   predictionText: {
     color: 'black',
-    fontSize: 16, // Verkleinerte Schriftgröße
-    marginTop: 5, // Reduzierter Abstand zwischen den Vorhersagen
+    fontSize: 16,
+    marginTop: 5,
     textAlign: 'center',
   },
   metricText: {
     color: 'black',
-    fontSize: 18, // Schriftgröße für Qualitätsmetriken
+    fontSize: 18,
     marginTop: 10,
     textAlign: 'center',
   },
   labelText: {
     color: 'black',
-    fontSize: 28, // Größere Schriftgröße für das Label
+    fontSize: 28,
     marginTop: 15,
     textAlign: 'center',
     fontWeight: 'bold',
   },
   repsText: {
     color: 'black',
-    fontSize: 28, // Größere Schriftgröße für die Repetitionen
+    fontSize: 28,
     marginTop: 5,
     textAlign: 'center',
     fontWeight: 'bold',
   },
   saveButtonContainer: {
-    width: 150,
+    alignSelf: 'center',
     marginTop: 20,
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50', // Angepasste Farbe
+    paddingVertical: 15, // Vertikales Padding
+    paddingHorizontal: 40, // Horizontales Padding
+    borderRadius: 25, // Abgerundete Ecken
+    alignItems: 'center',
+    shadowColor: '#000', // Schatten für iOS
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5, // Schatten für Android
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

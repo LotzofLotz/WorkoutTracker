@@ -1249,6 +1249,13 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
+"@react-native-async-storage/async-storage@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.npmjs.org/@react-native-async-storage/async-storage/-/async-storage-2.0.0.tgz"
+  integrity sha512-af6H9JjfL6G/PktBfUivvexoiFKQTJGQCtSWxMdivLzNIY94mu9DdiY0JqCSg/LyPCLGKhHPUlRQhNvpu3/KVA==
+  dependencies:
+    merge-options "^3.0.4"
+
 "@react-native-community/cli-clean@13.6.8":
   version "13.6.8"
   dependencies:
@@ -3261,6 +3268,11 @@ is-number@^7.0.0:
 is-path-inside@^3.0.3:
   version "3.0.3"
 
+is-plain-obj@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.npmjs.org/is-plain-obj/-/is-plain-obj-2.1.0.tgz"
+  integrity sha512-YWnfyRwxL/+SsrWYfOpUtz5b3YD+nyfkHvjbcanzk8zgyO4ASD67uVMRt8k5bM4lLMDnXfriRhOpemw+NfT1eA==
+
 is-plain-object@^2.0.4:
   version "2.0.4"
   dependencies:
@@ -3890,6 +3902,13 @@ mdn-data@2.0.14:
 
 memoize-one@^5.0.0:
   version "5.2.1"
+
+merge-options@^3.0.4:
+  version "3.0.4"
+  resolved "https://registry.npmjs.org/merge-options/-/merge-options-3.0.4.tgz"
+  integrity sha512-2Sug1+knBjkaMsMgf1ctR1Ujx+Ayku4EdJN4Z+C2+JzoeF7A3OZ9KM2GY0CpQS51NR61LTurMJrRKPhSs3ZRTQ==
+  dependencies:
+    is-plain-obj "^2.1.0"
 
 merge-stream@^2.0.0:
   version "2.0.0"
@@ -4593,7 +4612,12 @@ react-native-svg@^15.3.0, "react-native-svg@> 6.4.1":
     css-select "^5.1.0"
     css-tree "^1.1.3"
 
-react-native@*, "react-native@>= 0.50.0", react-native@>=0.39.0, react-native@>=0.65.0, react-native@>=0.8.0, react-native@0.74.2:
+react-native-toast-message@^2.2.1:
+  version "2.2.1"
+  resolved "https://registry.npmjs.org/react-native-toast-message/-/react-native-toast-message-2.2.1.tgz"
+  integrity sha512-iXFMnlxPcgKKs4bZOIl06W16m6KXMh/bAYpWLyVXlISSCdcL2+FX5WPpRP3TGQeM/u9q+j5ex48DDY+72en+Sw==
+
+react-native@*, "react-native@^0.0.0-0 || >=0.65 <1.0", "react-native@>= 0.50.0", react-native@>=0.39.0, react-native@>=0.65.0, react-native@>=0.8.0, react-native@0.74.2:
   version "0.74.2"
   dependencies:
     "@jest/create-cache-key-function" "^29.6.3"
