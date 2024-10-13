@@ -106,7 +106,14 @@ const App = (): React.JSX.Element => {
       />
 
       {/* Anzeige der gespeicherten Sets */}
-      <SavedSetsComponent sets={sets} />
+      <SavedSetsComponent
+        sets={sets}
+        // onWorkoutPress={date => {
+        //   // Hier kannst du definieren, was beim Klick auf ein Workout passieren soll
+        //   console.log('Workout am Datum angeklickt:', date);
+        //   // Zum Beispiel Navigation zu einer Detailansicht
+        // }}
+      />
 
       {/* Floating Button zum Öffnen des Modals */}
       <TouchableOpacity
