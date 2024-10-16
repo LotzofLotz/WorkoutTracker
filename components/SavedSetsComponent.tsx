@@ -7,9 +7,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import {WorkoutSet} from '../storageService';
 import Modal from 'react-native-modal'; // Importiere react-native-modal
+import {PieChart} from 'react-native-chart-kit';
 
 interface SavedSetsComponentProps {
   sets: WorkoutSet[];
@@ -27,6 +29,19 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
   const [selectedExercises, setSelectedExercises] = useState<ExerciseSummary[]>(
     [],
   );
+
+  const getColor = (index: number) => {
+    const colors = ['#e74c3c', '#f39c12', '#2ecc71', '#9b59b6']; // Rot, Orange, Grün, Violett
+    return colors[index % colors.length];
+  };
+
+  const pieChartData = selectedExercises.map((exercise, index) => ({
+    name: exercise.label,
+    population: exercise.totalReps,
+    color: getColor(index), // Funktion, um Farben zuzuweisen
+    legendFontColor: '#7F7F7F',
+    legendFontSize: 15,
+  }));
 
   // Funktion zum Gruppieren der Sets nach Datum und Übung
   const groupSetsByDateAndExercise = (sets: WorkoutSet[]) => {
@@ -127,16 +142,36 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
           <Text style={styles.modalTitle}>
             {selectedDate ? formatDate(selectedDate) : ''}
           </Text>
-          <ScrollView contentContainerStyle={styles.exercisesContainer}>
+          <View style={styles.exercisesContainer}>
             {selectedExercises.map((exercise, index) => (
               <View key={index} style={styles.exerciseItem}>
                 <Text style={styles.exerciseLabel}>{exercise.label}</Text>
-                <Text style={styles.exerciseStats}>
-                  {exercise.totalReps} Reps in {exercise.numberOfSets} Sets
-                </Text>
+                <View style={styles.exerciseStatsContainer}>
+                  <Text style={styles.highlightedReps}>
+                    {exercise.totalReps} Reps
+                  </Text>
+                  <Text style={styles.exerciseSets}>
+                    in {exercise.numberOfSets} Sets
+                  </Text>
+                </View>
               </View>
             ))}
-          </ScrollView>
+          </View>
+          <PieChart
+            data={pieChartData}
+            width={Dimensions.get('window').width * 0.8} // Breite des Charts
+            height={220}
+            chartConfig={{
+              backgroundColor: '#FFFFFF',
+              backgroundGradientFrom: '#FFFFFF',
+              backgroundGradientTo: '#FFFFFF',
+              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            }}
+            accessor="population"
+            backgroundColor="transparent"
+            paddingLeft="15"
+            absolute // Zeigt absolute Werte anstelle von Prozenten
+          />
           <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
             <Text style={styles.closeButtonText}>Schließen</Text>
           </TouchableOpacity>
@@ -224,16 +259,27 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
     paddingBottom: 10,
     width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   exerciseLabel: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
   },
-  exerciseStats: {
+  exerciseStatsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  highlightedReps: {
+    fontSize: 18, // Größere Schriftgröße für Hervorhebung
+    fontWeight: 'bold',
+    color: 'black', // Beispiel: Tomatenrot
+    marginRight: 5,
+  },
+  exerciseSets: {
     fontSize: 16,
     color: '#555',
-    marginTop: 5,
   },
   closeButton: {
     backgroundColor: '#2196F3',
