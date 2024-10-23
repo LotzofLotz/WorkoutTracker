@@ -19,14 +19,8 @@ interface Prediction {
 }
 
 interface TrackingModalProps {
-  trackingModalOpen: boolean;
-  setTrackingModalOpen: (open: boolean) => void;
-  isTracking: boolean;
-  setIsTracking: (tracking: boolean) => void;
-  timeElapsed: number;
-  resetTimeElapsed: () => void;
-  predict: () => Promise<void>;
-  isLoading: boolean;
+  isVisible: boolean;
+  onClose: () => void;
   predLabel: string;
   predReps: number;
   chartData: number[];
@@ -34,30 +28,14 @@ interface TrackingModalProps {
   predictions: Prediction[];
   quality: number;
   jerk: number;
-  recordedData: {
-    accX: number[];
-    accY: number[];
-    accZ: number[];
-    gyroX: number[];
-    gyroY: number[];
-    gyroZ: number[];
-  };
-  resetRecordedData: () => void;
   onSaveAndClose: () => void;
 }
 
 const TrackingModal: React.FC<TrackingModalProps> = ({
-  trackingModalOpen,
-  setTrackingModalOpen,
-  isTracking,
-  setIsTracking,
-  timeElapsed,
-  resetTimeElapsed,
-  predict,
-  isLoading,
+  isVisible,
+  onClose,
   predLabel,
   predReps,
-  resetRecordedData,
   chartData,
   peaks,
   predictions,
@@ -86,43 +64,43 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
     };
   }, []);
 
-  const handleStartStop = () => {
-    if (isTracking) {
-      predict();
-      setIsTracking(false);
-      setShowButton(false);
-    } else {
-      setTimeout(() => {
-        setIsTracking(true);
-      }, 3000);
+  // const handleStartStop = () => {
+  //   if (isTracking) {
+  //     predict();
+  //     setIsTracking(false);
+  //     setShowButton(false);
+  //   } else {
+  //     setTimeout(() => {
+  //       setIsTracking(true);
+  //     }, 3000);
 
-      countdownSound?.play(success => {
-        if (!success) {
-          console.log('Sound playback failed');
-        }
-      });
-    }
-  };
+  //     countdownSound?.play(success => {
+  //       if (!success) {
+  //         console.log('Sound playback failed');
+  //       }
+  //     });
+  //   }
+  // };
 
-  const closeModal = () => {
-    setTrackingModalOpen(false);
-    setIsTracking(false);
-    resetTimeElapsed();
-    resetRecordedData();
-    setShowButton(true);
-  };
+  // const closeModal = () => {
+  //   setTrackingModalOpen(false);
+  //   setIsTracking(false);
+  //   resetTimeElapsed();
+  //   resetRecordedData();
+  //   setShowButton(true);
+  // };
 
-  const handleSaveAndClose = () => {
-    onSaveAndClose();
-    resetTimeElapsed();
-    setShowButton(true);
-  };
+  // const handleSaveAndClose = () => {
+  //   onSaveAndClose();
+  //   resetTimeElapsed();
+  //   setShowButton(true);
+  // };
 
   return (
     <Modal
-      isVisible={trackingModalOpen}
-      onBackdropPress={closeModal}
-      onBackButtonPress={closeModal}
+      isVisible={isVisible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
       style={styles.modal}
       animationIn="slideInUp"
       animationOut="slideOutDown"
@@ -131,57 +109,41 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
       useNativeDriver={true}
       hideModalContentWhileAnimating={true}
       avoidKeyboard={true}>
-      <View
-        style={[
-          styles.modalContent,
-          {height: showButton ? screenHeight * 0.8 : 'auto'}, // Dynamische Höhe
-        ]}>
+      <View style={styles.modalContent}>
         {/* Modal Header */}
-        <ModalHeader title="Tracking" onClose={closeModal} />
+        <ModalHeader title="Ergebnisse" onClose={onClose} />
 
         {/* Inhalt des Modals */}
         <ScrollView contentContainerStyle={styles.modalBody}>
-          {showButton && (
-            <TouchableOpacity
-              onPress={handleStartStop}
-              style={styles.startStopButton}>
-              <Text style={styles.buttonText}>
-                {isTracking ? 'STOP' : 'START'}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {!isTracking && timeElapsed !== 0 && (
-            <View style={styles.resultsContainer}>
-              <View style={styles.chartContainer}>
-                <ChartComponent chartData={chartData} peaks={peaks} />
-              </View>
-              {predictions.map((prediction, index) => (
-                <Text style={styles.predictionText} key={index}>
-                  {index + 1}. Rep: {prediction.label} mit{' '}
-                  {(prediction.probability * 100).toFixed(2)}%
-                </Text>
-              ))}
-
-              <Text style={styles.metricText}>
-                Quality Correlation: {quality.toFixed(2)}
-              </Text>
-              <Text style={styles.metricText}>
-                Quality Jerk: {jerk.toFixed(2)}
-              </Text>
-
-              <Text style={styles.labelText}>LABEL: {predLabel}</Text>
-              <Text style={styles.repsText}>REPS: {predReps}</Text>
-
-              <View style={styles.saveButtonContainer}>
-                <TouchableOpacity
-                  style={styles.saveButton}
-                  onPress={handleSaveAndClose}>
-                  <Text style={styles.saveButtonText}>SAVE</Text>
-                </TouchableOpacity>
-              </View>
+          <View style={styles.resultsContainer}>
+            <View style={styles.chartContainer}>
+              <ChartComponent chartData={chartData} peaks={peaks} />
             </View>
-          )}
+            {predictions.map((prediction, index) => (
+              <Text style={styles.predictionText} key={index}>
+                {index + 1}. Rep: {prediction.label} mit{' '}
+                {(prediction.probability * 100).toFixed(2)}%
+              </Text>
+            ))}
+
+            <Text style={styles.metricText}>
+              Quality Correlation: {quality.toFixed(2)}
+            </Text>
+            <Text style={styles.metricText}>
+              Quality Jerk: {jerk.toFixed(2)}
+            </Text>
+
+            <Text style={styles.labelText}>LABEL: {predLabel}</Text>
+            <Text style={styles.repsText}>REPS: {predReps}</Text>
+
+            <View style={styles.saveButtonContainer}>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={onSaveAndClose}>
+                <Text style={styles.saveButtonText}>SAVE</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </ScrollView>
       </View>
     </Modal>

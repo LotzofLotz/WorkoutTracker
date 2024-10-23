@@ -1,11 +1,13 @@
 // App.tsx
-import React, {useState, useEffect} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   TouchableOpacity,
   SafeAreaView,
   View,
   StyleSheet,
   Text,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import TrackingModal from './components/TrackingModal';
 import SavedSetsComponent from './components/SavedSetsComponent';
@@ -19,10 +21,17 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import ProgressModal from './components/ProgressModal';
 import StatsModal from './components/StatsModal';
 import Header from './components/Header';
+import Sound from 'react-native-sound';
 
 const App = (): React.JSX.Element => {
+  const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
   const [trackingModalOpen, setTrackingModalOpen] = useState<boolean>(false);
-  const [isTracking, setIsTracking] = useState<boolean>(false);
+  //const [isTracking, setIsTracking] = useState<boolean>(false);
+  // Flag, um zu verhindern, dass die Animation mehrmals ausgelöst wird
+  const [isButtonEnlarged, setIsButtonEnlarged] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(false);
   const [sets, setSets] = useState<WorkoutSet[]>([]); // Zustand für gespeicherte Sets
   const [isProgressModalVisible, setProgressModalVisible] =
     useState<boolean>(false);
@@ -31,6 +40,9 @@ const App = (): React.JSX.Element => {
   const {model, isLoading} = useModel();
   const {recordedData, resetRecordedData} = useSensorData(isTracking);
   const {timeElapsed, resetTimeElapsed} = useTimer(isTracking);
+  const [isCountingDown, setIsCountingDown] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [isPredicting, setIsPredicting] = useState(false);
   const {
     predictLabel, // Funktion
     predReps, // Zahl
@@ -41,6 +53,26 @@ const App = (): React.JSX.Element => {
     jerk,
     predictions,
   } = usePrediction({model, recordedData});
+
+  useEffect(() => {
+    Sound.setCategory('Playback');
+
+    const sound = new Sound('sui_countdown.mp3', Sound.MAIN_BUNDLE, error => {
+      if (error) {
+        console.log('Failed to load the sound', error);
+        return;
+      }
+      setCountdownSound(sound);
+    });
+
+    return () => {
+      sound.release();
+    };
+  }, []);
+
+  // Animationswerte für Transformationen
+  const translateY = useRef(new Animated.Value(0)).current; // Anfangs keine Verschiebung
+  const scale = useRef(new Animated.Value(1)).current; // Anfangs keine Skalierung
 
   // Funktion zum Laden der Sets beim Start
   const loadSets = async () => {
@@ -53,9 +85,105 @@ const App = (): React.JSX.Element => {
   };
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown !== null && countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown(prev => (prev !== null ? prev - 1 : null));
+      }, 1000);
+    } else if (countdown === 0) {
+      // Countdown beendet, Tracking starten
+      setIsTracking(true);
+      setIsCountingDown(false);
+      setCountdown(null);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [countdown]);
+
+  useEffect(() => {
     loadSets();
   }, [trackingModalOpen]);
 
+  const animateButton = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+
+    const screenHeight = Dimensions.get('window').height;
+
+    const targetTranslateY = -(screenHeight / 2 - 60);
+
+    Animated.sequence([
+      Animated.timing(translateY, {
+        toValue: targetTranslateY,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 300 / 110,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setIsAnimating(false);
+      setIsButtonEnlarged(true);
+    });
+  };
+
+  const animateButtonBack = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+
+    Animated.sequence([
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setIsAnimating(false);
+      setIsButtonEnlarged(false);
+      // Nach der Animation das TrackingModal anzeigen
+      setShowResultsModal(true);
+    });
+  };
+
+  const handleStartStop = () => {
+    if (isTracking) {
+      // Stopp des Trackings
+      console.log('Stopping tracking...');
+      setIsTracking(false);
+      // Vorhersage starten
+      setIsPredicting(true); // Ladeindikator aktivieren
+      predictLabel() // Korrekt aufrufen
+        .then(() => {
+          setIsPredicting(false); // Ladeindikator deaktivieren
+          // Animation zurück zur ursprünglichen Position
+          animateButtonBack();
+        })
+        .catch(error => {
+          setIsPredicting(false);
+          console.error('Fehler bei der Vorhersage:', error);
+        });
+    } else if (!isCountingDown) {
+      // Start des Countdowns
+      console.log('Starting countdown and tracking...');
+      setIsCountingDown(true);
+      setCountdown(3); // Startwert für den Countdown
+      // Countdown-Sound abspielen
+      countdownSound?.play(success => {
+        if (!success) {
+          console.log('Sound playback failed');
+        }
+      });
+      // Tracking wird durch den Countdown-Effekt gestartet
+    }
+  };
   // Funktion zum Hinzufügen eines neuen Sets
   const addSet = async (newSet: WorkoutSet) => {
     try {
@@ -81,42 +209,34 @@ const App = (): React.JSX.Element => {
   const handleSaveAndClose = () => {
     const newSet: WorkoutSet = {
       timestamp: new Date().toISOString(),
-      label: predLabel, // Korrigierte Zuweisung
+      label: predLabel,
       repetitions: predReps,
     };
     addSet(newSet);
     resetTimeElapsed();
-    setTrackingModalOpen(false);
-  };
-
-  // Funktion zum Öffnen des Modals
-  const openModal = () => {
-    setTrackingModalOpen(true);
+    setShowResultsModal(false); // Korrekt den richtigen Zustand setzen
+    resetRecordedData();
+    Toast.show({
+      type: 'success',
+      text1: 'Glückwunsch!',
+      text2: 'Set wurde erfolgreich gespeichert!',
+    });
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <Header title="Workout History" />
-      {/* Tracking Modal */}
       <TrackingModal
-        trackingModalOpen={trackingModalOpen}
-        setTrackingModalOpen={setTrackingModalOpen}
-        isTracking={isTracking}
-        setIsTracking={setIsTracking}
-        timeElapsed={timeElapsed}
-        resetTimeElapsed={resetTimeElapsed}
-        recordedData={recordedData}
-        resetRecordedData={resetRecordedData}
-        predict={predictLabel} // Funktion weitergeben
-        isLoading={isLoading}
-        predLabel={predLabel} // String weitergeben
+        isVisible={showResultsModal}
+        onClose={() => setShowResultsModal(false)}
+        predLabel={predLabel}
         predReps={predReps}
         chartData={chartData}
         peaks={peaks}
         predictions={predictions}
         quality={quality}
         jerk={jerk}
-        onSaveAndClose={handleSaveAndClose} // Übergabe des Callbacks
+        onSaveAndClose={handleSaveAndClose}
       />
       <ProgressModal
         isVisible={isProgressModalVisible}
@@ -149,11 +269,39 @@ const App = (): React.JSX.Element => {
         </TouchableOpacity>
 
         {/* Add Workout Button */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.addButton}
           onPress={() => setTrackingModalOpen(true)}>
           <Icon name="plus" size={54} color="#fff" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+        <Animated.View
+          style={[
+            styles.addButton,
+            {
+              transform: [{translateY: translateY}, {scale: scale}],
+            },
+          ]}>
+          <TouchableOpacity
+            onPress={() => {
+              if (!isButtonEnlarged) {
+                animateButton();
+              } else if (!isCountingDown) {
+                handleStartStop();
+              }
+            }}
+            style={styles.addButtonTouchable}
+            disabled={isCountingDown}>
+            {!isButtonEnlarged ? (
+              <Icon name="plus" size={54} color="#fff" />
+            ) : isCountingDown ? (
+              <Text style={styles.buttonText}>{countdown}</Text>
+            ) : (
+              <Text style={styles.buttonText}>
+                {isTracking ? 'Stop' : 'Start'}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* Progress Button */}
         <TouchableOpacity
@@ -208,6 +356,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 20,
   },
+
   button: {
     flex: 0.48, // Etwa die Hälfte des verfügbaren Platzes
     backgroundColor: '#2196F3', // Gleiche Farbe wie der Schließen-Button
@@ -216,8 +365,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
+    fontSize: 44,
     color: 'white',
-    fontSize: 16,
     fontWeight: 'bold',
   },
 
@@ -246,22 +395,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  // addButton: {
+  //   left: 10,
+  //   bottom: 15,
+  //   width: 110,
+  //   height: 110,
+  //   borderRadius: 60,
+  //   backgroundColor: '#ff4d4d', // Orange für den + Button
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   // Optional: Schatten für den freiflotierenden Effekt
+  //   shadowColor: '#000',
+  //   shadowOffset: {width: 0, height: 4},
+  //   shadowOpacity: 0.3,
+  //   shadowRadius: 4,
+  //   elevation: 5,
+  //   marginBottom: 30, // Verschiebung nach oben, um den freiflotierenden Effekt zu erzeugen
+  // },
   addButton: {
-    left: 10,
-    bottom: 15,
+    position: 'absolute',
+    bottom: 15, // Positionierung vom unteren Rand
+    left: 150, // Positionierung vom linken Rand
     width: 110,
     height: 110,
-    borderRadius: 60,
-    backgroundColor: '#ff4d4d', // Orange für den + Button
+    borderRadius: 55, // Halbwert der Breite/Höhe für runde Form
+    backgroundColor: '#ff4d4d',
     justifyContent: 'center',
     alignItems: 'center',
-    // Optional: Schatten für den freiflotierenden Effekt
+    // Schatten für den freiflotierenden Effekt
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    marginBottom: 30, // Verschiebung nach oben, um den freiflotierenden Effekt zu erzeugen
+  },
+  addButtonTouchable: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

@@ -126,7 +126,7 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
                 onPress={() => handleWorkoutPress(date)}>
                 <View style={styles.workoutHeader}>
                   <Text style={styles.dateTitle}>{formatDate(date)}</Text>
-                  <Text style={styles.totalReps}>Gesamt: {totalReps} Reps</Text>
+                  <Text style={styles.totalReps}>Total: {totalReps} Reps</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -238,7 +238,8 @@ const styles = StyleSheet.create({
     color: '#444',
   },
   totalReps: {
-    fontSize: 16,
+    fontWeight: 'bold',
+    fontSize: 18,
     color: '#444',
   },
   // Styles für das Modal
