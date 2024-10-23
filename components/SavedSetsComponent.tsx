@@ -6,12 +6,12 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Dimensions,
 } from 'react-native';
 import {WorkoutSet} from '../storageService';
-import Modal from 'react-native-modal'; // Importiere react-native-modal
+import Modal from 'react-native-modal';
 import {PieChart} from 'react-native-chart-kit';
+import ModalHeader from './ModalHeader'; // Importiere ModalHeader
 
 interface SavedSetsComponentProps {
   sets: WorkoutSet[];
@@ -29,19 +29,6 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
   const [selectedExercises, setSelectedExercises] = useState<ExerciseSummary[]>(
     [],
   );
-
-  const getColor = (index: number) => {
-    const colors = ['#e74c3c', '#f39c12', '#2ecc71', '#9b59b6']; // Rot, Orange, Grün, Violett
-    return colors[index % colors.length];
-  };
-
-  const pieChartData = selectedExercises.map((exercise, index) => ({
-    name: exercise.label,
-    population: exercise.totalReps,
-    color: getColor(index), // Funktion, um Farben zuzuweisen
-    legendFontColor: '#7F7F7F',
-    legendFontSize: 15,
-  }));
 
   // Funktion zum Gruppieren der Sets nach Datum und Übung
   const groupSetsByDateAndExercise = (sets: WorkoutSet[]) => {
@@ -99,6 +86,28 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
     setSelectedExercises([]);
   };
 
+  // Farb-Mapping für spezifische Übungen
+  const exerciseColors: {[key: string]: string} = {
+    Squat: '#e74c3c', // Rot
+    PushUp: '#f39c12', // Orange
+    PullUp: '#2ecc71', // Grün
+    SitUp: '#9b59b6', // Violett
+  };
+
+  // Hilfsfunktion, um Farben zuzuweisen
+  const getColor = (label: string) => {
+    return exerciseColors[label] || '#34495e'; // Fallback-Farbe (dunkelgrau)
+  };
+
+  // Daten für den PieChart vorbereiten ohne Legendeigenschaften
+  const pieChartData = selectedExercises.map((exercise, index) => ({
+    name: exercise.label,
+    population: exercise.totalReps,
+    color: getColor(exercise.label),
+    legendFontColor: '#7F7F7F',
+    legendFontSize: 15,
+  }));
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Gespeicherte Workouts</Text>
@@ -139,9 +148,13 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
         hideModalContentWhileAnimating={true}
         avoidKeyboard={true}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>
-            {selectedDate ? formatDate(selectedDate) : ''}
-          </Text>
+          {/* Modal Header */}
+          <ModalHeader
+            title={`Workout ${formatDate(selectedDate || '')}`}
+            onClose={closeModal}
+          />
+
+          {/* Inhalt des Modals */}
           <View style={styles.exercisesContainer}>
             {selectedExercises.map((exercise, index) => (
               <View key={index} style={styles.exerciseItem}>
@@ -172,9 +185,7 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
             paddingLeft="15"
             absolute // Zeigt absolute Werte anstelle von Prozenten
           />
-          <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-            <Text style={styles.closeButtonText}>Schließen</Text>
-          </TouchableOpacity>
+          {/* Optional: Weitere Inhalte können hier hinzugefügt werden */}
         </View>
       </Modal>
     </View>
@@ -232,25 +243,20 @@ const styles = StyleSheet.create({
   },
   // Styles für das Modal
   modal: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
+    alignItems: 'stretch', // Ändere dies zu 'stretch', um die volle Breite zu nutzen
     margin: 0,
   },
   modalContent: {
-    width: '90%',
+    width: '100%', // Stelle sicher, dass es 100% Breite hat
     backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+    maxHeight: '80%', // Höhe anpassen, um genügend Platz für den Inhalt zu bieten
   },
   exercisesContainer: {
-    width: '100%',
+    padding: 20,
     alignItems: 'center',
   },
   exerciseItem: {
@@ -274,23 +280,12 @@ const styles = StyleSheet.create({
   highlightedReps: {
     fontSize: 18, // Größere Schriftgröße für Hervorhebung
     fontWeight: 'bold',
-    color: 'black', // Beispiel: Tomatenrot
+    color: 'black', // Rot für Hervorhebung
     marginRight: 5,
   },
   exerciseSets: {
     fontSize: 16,
     color: '#555',
-  },
-  closeButton: {
-    backgroundColor: '#2196F3',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    marginTop: 20,
-  },
-  closeButtonText: {
-    color: 'white',
-    fontSize: 16,
   },
 });
 

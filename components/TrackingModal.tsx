@@ -6,10 +6,12 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import Modal from 'react-native-modal';
 import ChartComponent from './ChartComponent';
 import Sound from 'react-native-sound';
+import ModalHeader from './ModalHeader'; // Importiere ModalHeader
 
 interface Prediction {
   label: string;
@@ -25,7 +27,7 @@ interface TrackingModalProps {
   resetTimeElapsed: () => void;
   predict: () => Promise<void>;
   isLoading: boolean;
-  predLabel: string; // Erwartet ein string
+  predLabel: string;
   predReps: number;
   chartData: number[];
   peaks: number[];
@@ -41,7 +43,7 @@ interface TrackingModalProps {
     gyroZ: number[];
   };
   resetRecordedData: () => void;
-  onSaveAndClose: () => void; // Callback
+  onSaveAndClose: () => void;
 }
 
 const TrackingModal: React.FC<TrackingModalProps> = ({
@@ -61,10 +63,12 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   predictions,
   quality,
   jerk,
-  onSaveAndClose, // Empfang des Callbacks
+  onSaveAndClose,
 }) => {
   const [showButton, setShowButton] = useState<boolean>(true);
   const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
+
+  const screenHeight = Dimensions.get('window').height; // Ermittelt die Höhe des Bildschirms
 
   useEffect(() => {
     Sound.setCategory('Playback');
@@ -100,7 +104,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
     }
   };
 
-  const onClose = () => {
+  const closeModal = () => {
     setTrackingModalOpen(false);
     setIsTracking(false);
     resetTimeElapsed();
@@ -111,70 +115,74 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   const handleSaveAndClose = () => {
     onSaveAndClose();
     resetTimeElapsed();
-    setShowButton(true); // Rufe den Callback aus App.tsx auf
-    // onClose wird automatisch durch setTrackingModalOpen(false) in App.tsx aufgerufen
+    setShowButton(true);
   };
 
   return (
     <Modal
       isVisible={trackingModalOpen}
-      onBackButtonPress={onClose}
-      onDismiss={onClose}
+      onBackdropPress={closeModal}
+      onBackButtonPress={closeModal}
       style={styles.modal}
       animationIn="slideInUp"
       animationOut="slideOutDown"
       backdropColor="#132224"
+      backdropOpacity={0.5}
       useNativeDriver={true}
       hideModalContentWhileAnimating={true}
       avoidKeyboard={true}>
-      <View style={styles.modalContent}>
-        {showButton && (
-          <TouchableOpacity
-            onPress={handleStartStop}
-            style={styles.startStopButton}>
-            <Text style={styles.buttonText}>
-              {isTracking ? 'STOP' : 'START'}
-            </Text>
-          </TouchableOpacity>
-        )}
+      <View
+        style={[
+          styles.modalContent,
+          {height: showButton ? screenHeight * 0.8 : 'auto'}, // Dynamische Höhe
+        ]}>
+        {/* Modal Header */}
+        <ModalHeader title="Tracking" onClose={closeModal} />
 
-        {/* Anzeige der Ergebnisse nach dem Tracking */}
-        {!isTracking && timeElapsed !== 0 && (
-          <ScrollView contentContainerStyle={styles.resultsContainer}>
-            <View style={styles.chartContainer}>
-              <ChartComponent chartData={chartData} peaks={peaks} />
-            </View>
-            {/* Anzeige der Vorhersagen */}
-            {predictions.map((prediction, index) => (
-              <Text style={styles.predictionText} key={index}>
-                {index + 1}. Rep: {prediction.label} mit{' '}
-                {(prediction.probability * 100).toFixed(2)}%
+        {/* Inhalt des Modals */}
+        <ScrollView contentContainerStyle={styles.modalBody}>
+          {showButton && (
+            <TouchableOpacity
+              onPress={handleStartStop}
+              style={styles.startStopButton}>
+              <Text style={styles.buttonText}>
+                {isTracking ? 'STOP' : 'START'}
               </Text>
-            ))}
+            </TouchableOpacity>
+          )}
 
-            {/* Anzeige der Qualitätsmetriken */}
-            <Text style={styles.metricText}>
-              Quality Correlation: {quality.toFixed(2)}
-            </Text>
-            <Text style={styles.metricText}>
-              Quality Jerk: {jerk.toFixed(2)}
-            </Text>
+          {!isTracking && timeElapsed !== 0 && (
+            <View style={styles.resultsContainer}>
+              <View style={styles.chartContainer}>
+                <ChartComponent chartData={chartData} peaks={peaks} />
+              </View>
+              {predictions.map((prediction, index) => (
+                <Text style={styles.predictionText} key={index}>
+                  {index + 1}. Rep: {prediction.label} mit{' '}
+                  {(prediction.probability * 100).toFixed(2)}%
+                </Text>
+              ))}
 
-            {/* Anzeige des finalen Labels und der Anzahl der Wiederholungen */}
-            <Text style={styles.labelText}>LABEL: {predLabel}</Text>
-            <Text style={styles.repsText}>REPS: {predReps}</Text>
+              <Text style={styles.metricText}>
+                Quality Correlation: {quality.toFixed(2)}
+              </Text>
+              <Text style={styles.metricText}>
+                Quality Jerk: {jerk.toFixed(2)}
+              </Text>
 
-            {/* Verbesserter SAVE-Button */}
-            <View style={styles.saveButtonContainer}>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSaveAndClose} // Verwende den neuen Handler
-              >
-                <Text style={styles.saveButtonText}>SAVE</Text>
-              </TouchableOpacity>
+              <Text style={styles.labelText}>LABEL: {predLabel}</Text>
+              <Text style={styles.repsText}>REPS: {predReps}</Text>
+
+              <View style={styles.saveButtonContainer}>
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={handleSaveAndClose}>
+                  <Text style={styles.saveButtonText}>SAVE</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </ScrollView>
-        )}
+          )}
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -182,43 +190,46 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
 
 const styles = StyleSheet.create({
   modal: {
-    justifyContent: 'center', // Vertikale Zentrierung
-    alignItems: 'center', // Horizontale Zentrierung
+    justifyContent: 'flex-end',
+    margin: 0,
   },
   modalContent: {
     width: '100%',
-    backgroundColor: 'white', // Ändere die Farbe nach Bedarf
-    borderRadius: 10,
-    padding: 5, // Innenabstand für den Inhalt
-    margin: 20, // Außenabstand, um das Modal vom Bildschirmrand zu entfernen
-    alignSelf: 'center', // Ermöglicht dem Modal, sich an den Inhalt anzupassen
-    flex: 0, // Verhindert, dass das Modal den gesamten Platz einnimmt
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+    alignItems: 'center',
+    // Höhe wird dynamisch gesetzt basierend auf showButton
+  },
+  modalBody: {
+    padding: 20,
+    alignItems: 'center',
   },
   startStopButton: {
-    width: 250,
-    height: 250,
+    width: 350,
+    height: 350,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ff4d4d', // Angepasste Farbe
-    borderRadius: 150, // Kreisförmig
-    marginBottom: 0, // Abstand zum nächsten Element
+    backgroundColor: '#ff4d4d',
+    borderRadius: 200,
+    marginBottom: 20,
   },
   buttonText: {
-    fontSize: 34, // Angepasste Schriftgröße
+    fontSize: 54,
     color: 'white',
     fontWeight: 'bold',
   },
   resultsContainer: {
     width: '100%',
-    alignItems: 'center', // Zentriert den Inhalt horizontal
+    alignItems: 'center',
     marginTop: 10,
-    paddingBottom: 20, // Optional: fügt unten etwas Abstand hinzu
+    paddingBottom: 20,
   },
   chartContainer: {
     width: '100%',
     alignItems: 'center',
     marginBottom: 20,
-    left: -25,
   },
   predictionText: {
     color: 'black',
@@ -251,16 +262,16 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   saveButton: {
-    backgroundColor: '#4CAF50', // Angepasste Farbe
-    paddingVertical: 15, // Vertikales Padding
-    paddingHorizontal: 40, // Horizontales Padding
-    borderRadius: 25, // Abgerundete Ecken
+    backgroundColor: '#4CAF50',
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 25,
     alignItems: 'center',
-    shadowColor: '#000', // Schatten für iOS
+    shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5, // Schatten für Android
+    elevation: 5,
   },
   saveButtonText: {
     color: 'white',
