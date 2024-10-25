@@ -2,6 +2,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Colors from './colors';
 
 interface ModalHeaderProps {
   title: string;
@@ -24,9 +25,9 @@ const ModalHeader: React.FC<ModalHeaderProps> = ({title, onClose}) => {
 const styles = StyleSheet.create({
   headerContainer: {
     width: '100%', // Stelle sicher, dass es 100% Breite hat
-    backgroundColor: '#2196F3',
-    paddingTop: 10, // Minimaler Abstand für das Modal
-    paddingBottom: 10,
+    backgroundColor: Colors.primary,
+    paddingTop: 12, // Minimaler Abstand für das Modal
+    paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -36,7 +37,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 25,
     fontWeight: 'bold',
     textAlign: 'center',
   },

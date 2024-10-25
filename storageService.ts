@@ -13,7 +13,7 @@ const WORKOUT_SETS_KEY = 'workout_sets';
 export const getWorkoutSets = async (): Promise<WorkoutSet[]> => {
   try {
     const setsJSON = await AsyncStorage.getItem(WORKOUT_SETS_KEY);
-    console.log('sets', setsJSON);
+    //console.log('sets', setsJSON);
     return setsJSON ? JSON.parse(setsJSON) : [];
   } catch (error) {
     console.error('Fehler beim Abrufen der Sets:', error);
@@ -59,4 +59,11 @@ export const groupWorkoutSetsByDate = (
     },
     {},
   );
+};
+
+export const getGroupedWorkoutSets = async (): Promise<{
+  [date: string]: WorkoutSet[];
+}> => {
+  const workoutSets = await getWorkoutSets();
+  return groupWorkoutSetsByDate(workoutSets);
 };

@@ -12,7 +12,7 @@ import {WorkoutSet} from '../storageService';
 import Modal from 'react-native-modal';
 import {PieChart} from 'react-native-chart-kit';
 import ModalHeader from './ModalHeader'; // Importiere ModalHeader
-
+import Colors from './colors';
 interface SavedSetsComponentProps {
   sets: WorkoutSet[];
 }
@@ -88,10 +88,10 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
 
   // Farb-Mapping für spezifische Übungen
   const exerciseColors: {[key: string]: string} = {
-    Squat: '#e74c3c', // Rot
-    PushUp: '#f39c12', // Orange
-    PullUp: '#2ecc71', // Grün
-    SitUp: '#9b59b6', // Violett
+    Squat: Colors.red, // Rot
+    PushUp: Colors.red2, // Orange
+    PullUp: Colors.primary, // Grün
+    SitUp: Colors.secondary, // Violett
   };
 
   // Hilfsfunktion, um Farben zuzuweisen
@@ -104,13 +104,13 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
     name: exercise.label,
     population: exercise.totalReps,
     color: getColor(exercise.label),
-    legendFontColor: '#7F7F7F',
+    legendFontColor: 'black',
     legendFontSize: 15,
   }));
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Gespeicherte Workouts</Text>
+      {/* <Text style={styles.title}>Gespeicherte Workouts</Text> */}
       {sortedDates.length === 0 ? (
         <Text style={styles.emptyText}>Keine Workouts gespeichert.</Text>
       ) : (
@@ -170,21 +170,23 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
               </View>
             ))}
           </View>
-          <PieChart
-            data={pieChartData}
-            width={Dimensions.get('window').width * 0.8} // Breite des Charts
-            height={220}
-            chartConfig={{
-              backgroundColor: '#FFFFFF',
-              backgroundGradientFrom: '#FFFFFF',
-              backgroundGradientTo: '#FFFFFF',
-              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            }}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            absolute // Zeigt absolute Werte anstelle von Prozenten
-          />
+          <View style={{alignItems: 'center'}}>
+            <PieChart
+              data={pieChartData}
+              width={Dimensions.get('window').width * 0.8} // Breite des Charts
+              height={220}
+              chartConfig={{
+                backgroundColor: '#FFFFFF',
+                backgroundGradientFrom: '#FFFFFF',
+                backgroundGradientTo: '#FFFFFF',
+                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+              }}
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              //absolute // Zeigt absolute Werte anstelle von Prozenten
+            />
+          </View>
           {/* Optional: Weitere Inhalte können hier hinzugefügt werden */}
         </View>
       </Modal>

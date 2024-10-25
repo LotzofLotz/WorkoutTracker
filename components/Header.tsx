@@ -1,6 +1,7 @@
 // components/Header.tsx
 import React from 'react';
 import {View, Text, StyleSheet, StatusBar} from 'react-native';
+import Colors from './colors';
 
 interface HeaderProps {
   title: string;
@@ -18,7 +19,7 @@ const Header: React.FC<HeaderProps> = ({title}) => {
 const styles = StyleSheet.create({
   headerContainer: {
     width: '100%',
-    backgroundColor: '#2196F3',
+    backgroundColor: Colors.primary,
     paddingTop: 20, // Für Safe Area und StatusBar Abstand
     paddingBottom: 20,
     alignItems: 'center',

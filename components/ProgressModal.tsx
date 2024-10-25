@@ -12,6 +12,7 @@ import Modal from 'react-native-modal';
 import {LineChart} from 'react-native-chart-kit';
 import ModalHeader from './ModalHeader'; // Dein ModalHeader
 import {WorkoutSet} from '../storageService'; // Importiere WorkoutSet-Definition
+import Colors from './colors';
 
 interface ProgressModalProps {
   isVisible: boolean;
@@ -134,23 +135,28 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
           ) : (
             <LineChart
               data={getChartData}
-              width={Dimensions.get('window').width * 0.9} // Grafikwert in 90% der Bildschirmbreite
+              width={Dimensions.get('window').width * 0.9} // 90% der Bildschirmbreite
               height={220}
               chartConfig={{
                 backgroundColor: '#ffffff',
                 backgroundGradientFrom: '#ffffff',
                 backgroundGradientTo: '#ffffff',
                 decimalPlaces: 0, // keine Nachkommastellen
-                color: (opacity = 1) => `rgba(33, 150, 243, ${opacity})`, // Farbe der Linien
-                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, // Farbe der Labels
+                color: (opacity = 1) => `rgba(0, 48, 73, ${opacity})`, // #003049 für die Linienfarbe
+                fillShadowGradient: '#669bbc',
+                fillShadowGradientOpacity: 0.6,
                 style: {
                   borderRadius: 16,
                 },
                 propsForDots: {
                   r: '4',
                   strokeWidth: '2',
-                  stroke: '#2196F3',
+                  stroke: '#003049', // #003049 für die Punkte
+                  fill: '#669bbc', // Optional: Füllfarbe der Punkte
                 },
+                // Optional: Hintergrund der Grafik anpassen
+                // fillShadowGradient: '#669bbc', // Für den Bereich unter der Linie
+                // fillShadowGradientOpacity: 0.3,
               }}
               bezier
               style={{
@@ -188,14 +194,14 @@ const styles = StyleSheet.create({
   statButton: {
     paddingVertical: 10,
     paddingHorizontal: 20, // Mehr Padding für breitere Buttons
-    backgroundColor: '#f1f1f1',
+    backgroundColor: '#f1f1f1', //fdf0d5
     borderRadius: 10,
     marginHorizontal: 5,
     alignItems: 'center',
     minWidth: 90, // Mindestbreite für die Buttons
   },
   selectedButton: {
-    backgroundColor: '#2196F3', // Farbe für den ausgewählten Button
+    backgroundColor: Colors.secondary, // Farbe für den ausgewählten Button
   },
   statButtonText: {
     fontSize: 14,

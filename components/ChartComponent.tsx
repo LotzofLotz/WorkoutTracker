@@ -2,6 +2,7 @@ import React from 'react';
 import {View, Dimensions, ActivityIndicator, StyleSheet} from 'react-native';
 import {LineChart} from 'react-native-chart-kit';
 import {Svg, Line} from 'react-native-svg';
+import Colors from './colors';
 
 // Bestimme die Bildschirmbreite
 const screenWidth = Dimensions.get('window').width;
@@ -16,18 +17,20 @@ interface ChartComponentProps {
 const chartConfig = {
   backgroundGradientFrom: '#fff',
   backgroundGradientTo: '#fff',
-  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+  color: (opacity = 1) => `rgba(0, 48, 73, ${opacity})`, // Colors.primary
+  fillShadowGradient: Colors.secondary, // Für den Bereich unter der Linie
+  fillShadowGradientOpacity: 0.6,
   strokeWidth: 2, // Standard Linienbreite
-  decimalPlaces: 2, // Anzahl der Dezimalstellen
+  decimalPlaces: 1, // Anzahl der Dezimalstellen
   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-  style: {
-    borderRadius: 16,
-  },
-  propsForDots: {
-    r: '2', // Größe der Punkte ändern
-    strokeWidth: '4',
-    stroke: '#ffa726',
-  },
+  // style: {
+  //   borderRadius: 16,
+  // },
+  // propsForDots: {
+  //   r: '2', // Größe der Punkte ändern
+  //   strokeWidth: '4',
+  //   stroke: '#ffa726',
+  // },
   propsForBackgroundLines: {
     strokeDasharray: '', // Entfernt gestrichelte Linien
   },
@@ -68,7 +71,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
               y1={10}
               x2={x + yAxisOffset}
               y2={height - 38}
-              stroke="blue"
+              stroke={Colors.red} // Verwendung von Colors.red für die Peaks
               strokeWidth="2"
               strokeDasharray="4 2" // Erzeugt eine gestrichelte Linie
             />
@@ -95,7 +98,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
           datasets: [
             {
               data: chartData,
-              color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+              color: (opacity = 1) => `rgba(0, 48, 73, ${opacity})`, // Colors.primary
               strokeWidth: 2,
               withDots: false,
             },

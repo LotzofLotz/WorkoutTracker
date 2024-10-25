@@ -1,4 +1,3 @@
-// components/TrackingModal.tsx
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -12,6 +11,7 @@ import Modal from 'react-native-modal';
 import ChartComponent from './ChartComponent';
 import Sound from 'react-native-sound';
 import ModalHeader from './ModalHeader'; // Importiere ModalHeader
+import Colors from './colors';
 
 interface Prediction {
   label: string;
@@ -28,7 +28,7 @@ interface TrackingModalProps {
   predictions: Prediction[];
   quality: number;
   jerk: number;
-  onSaveAndClose: () => void;
+  onSaveAndClose: (adjustedReps: number) => void; // Ändere die Signatur
 }
 
 const TrackingModal: React.FC<TrackingModalProps> = ({
@@ -45,6 +45,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
 }) => {
   const [showButton, setShowButton] = useState<boolean>(true);
   const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
+  const [adjustedReps, setAdjustedReps] = useState<number>(predReps); // Neuer Zustand
 
   const screenHeight = Dimensions.get('window').height; // Ermittelt die Höhe des Bildschirms
 
@@ -64,37 +65,23 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
     };
   }, []);
 
-  // const handleStartStop = () => {
-  //   if (isTracking) {
-  //     predict();
-  //     setIsTracking(false);
-  //     setShowButton(false);
-  //   } else {
-  //     setTimeout(() => {
-  //       setIsTracking(true);
-  //     }, 3000);
+  // Aktualisiere adjustedReps, wenn predReps sich ändert
+  useEffect(() => {
+    setAdjustedReps(predReps);
+  }, [predReps]);
 
-  //     countdownSound?.play(success => {
-  //       if (!success) {
-  //         console.log('Sound playback failed');
-  //       }
-  //     });
-  //   }
-  // };
+  // Funktionen zum Anpassen der Reps
+  const incrementReps = () => {
+    setAdjustedReps(prev => prev + 1);
+  };
 
-  // const closeModal = () => {
-  //   setTrackingModalOpen(false);
-  //   setIsTracking(false);
-  //   resetTimeElapsed();
-  //   resetRecordedData();
-  //   setShowButton(true);
-  // };
+  const decrementReps = () => {
+    setAdjustedReps(prev => (prev > 0 ? prev - 1 : 0));
+  };
 
-  // const handleSaveAndClose = () => {
-  //   onSaveAndClose();
-  //   resetTimeElapsed();
-  //   setShowButton(true);
-  // };
+  const handleSave = () => {
+    onSaveAndClose(adjustedReps); // Übergib die angepasste Reps-Zahl
+  };
 
   return (
     <Modal
@@ -111,7 +98,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
       avoidKeyboard={true}>
       <View style={styles.modalContent}>
         {/* Modal Header */}
-        <ModalHeader title="Ergebnisse" onClose={onClose} />
+        <ModalHeader title="Result" onClose={onClose} />
 
         {/* Inhalt des Modals */}
         <ScrollView contentContainerStyle={styles.modalBody}>
@@ -121,25 +108,41 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
             </View>
             {predictions.map((prediction, index) => (
               <Text style={styles.predictionText} key={index}>
-                {index + 1}. Rep: {prediction.label} mit{' '}
-                {(prediction.probability * 100).toFixed(2)}%
+                {index + 1}. Rep: {prediction.label} {' ('}
+                {(prediction.probability * 100).toFixed(2)}%{')'}
               </Text>
             ))}
 
-            <Text style={styles.metricText}>
+            {/* <Text style={styles.metricText}>
               Quality Correlation: {quality.toFixed(2)}
             </Text>
             <Text style={styles.metricText}>
               Quality Jerk: {jerk.toFixed(2)}
-            </Text>
+            </Text> */}
 
-            <Text style={styles.labelText}>LABEL: {predLabel}</Text>
-            <Text style={styles.repsText}>REPS: {predReps}</Text>
+            <Text style={styles.labelText}>LABEL: </Text>
+            <Text style={styles.predLabelText}> {predLabel}</Text>
+
+            {/* Bereich zum Anpassen der Reps */}
+            <View style={styles.repsAdjustContainer}>
+              <Text style={styles.repsLabel}>REPS:</Text>
+              <View style={styles.adjustButtons}>
+                <TouchableOpacity
+                  style={styles.adjustButton}
+                  onPress={decrementReps}>
+                  <Text style={styles.adjustButtonText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.adjustedReps}>{adjustedReps}</Text>
+                <TouchableOpacity
+                  style={styles.adjustButton}
+                  onPress={incrementReps}>
+                  <Text style={styles.adjustButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
             <View style={styles.saveButtonContainer}>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={onSaveAndClose}>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                 <Text style={styles.saveButtonText}>SAVE</Text>
               </TouchableOpacity>
             </View>
@@ -167,6 +170,44 @@ const styles = StyleSheet.create({
   modalBody: {
     padding: 20,
     alignItems: 'center',
+  },
+
+  repsAdjustContainer: {
+    // flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  repsLabel: {
+    color: 'black',
+    fontSize: 24,
+    // fontWeight: 'bold',
+    marginRight: 10,
+  },
+  adjustButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  adjustButton: {
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 80,
+    width: 80,
+    padding: 10,
+    borderRadius: 5,
+  },
+  adjustButtonText: {
+    fontSize: 44,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  adjustedReps: {
+    fontSize: 44,
+    fontWeight: 'bold',
+    color: 'black',
+    marginHorizontal: 20,
+    minWidth: 50,
+    textAlign: 'center',
   },
   startStopButton: {
     width: 350,
@@ -207,28 +248,38 @@ const styles = StyleSheet.create({
   },
   labelText: {
     color: 'black',
-    fontSize: 28,
+    fontSize: 24,
     marginTop: 15,
+    textAlign: 'center',
+    // fontWeight: 'bold',
+  },
+  predLabelText: {
+    color: Colors.primary,
+    fontSize: 44,
+    marginTop: 10,
     textAlign: 'center',
     fontWeight: 'bold',
   },
   repsText: {
     color: 'black',
-    fontSize: 28,
+    fontSize: 24,
     marginTop: 5,
     textAlign: 'center',
-    fontWeight: 'bold',
+    // fontWeight: 'bold',
   },
   saveButtonContainer: {
     alignSelf: 'center',
     marginTop: 20,
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 25,
+    backgroundColor: Colors.secondary,
+    justifyContent: 'center',
     alignItems: 'center',
+    //paddingVertical: 15,
+    //paddingHorizontal: 40,
+    height: 80,
+    width: 200,
+    borderRadius: 25,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
@@ -237,7 +288,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 34,
     fontWeight: 'bold',
   },
 });

@@ -11,6 +11,7 @@ import {
 import Modal from 'react-native-modal';
 import {PieChart} from 'react-native-chart-kit';
 import ModalHeader from './ModalHeader';
+import Colors from './colors';
 
 interface WorkoutSet {
   timestamp: string;
@@ -55,10 +56,10 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
 
   // Farb-Mapping für spezifische Übungen
   const exerciseColors: {[key: string]: string} = {
-    Squat: '#e74c3c', // Rot
-    PushUp: '#f39c12', // Orange
-    PullUp: '#2ecc71', // Grün
-    SitUp: '#9b59b6', // Violett
+    Squat: Colors.red, // Rot
+    PushUp: Colors.red2, // Orange
+    PullUp: Colors.primary, // Grün
+    SitUp: Colors.secondary, // Violett
   };
 
   // Hilfsfunktion, um Farben zuzuweisen
