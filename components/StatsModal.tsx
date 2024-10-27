@@ -56,8 +56,8 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
 
   // Farb-Mapping für spezifische Übungen
   const exerciseColors: {[key: string]: string} = {
-    Squat: Colors.red, // Rot
-    PushUp: Colors.red2, // Orange
+    Squat: Colors.teal,
+    PushUp: Colors.purple,
     PullUp: Colors.primary, // Grün
     SitUp: Colors.secondary, // Violett
   };
@@ -79,16 +79,21 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
   return (
     <Modal
       isVisible={isVisible}
-      onBackdropPress={onClose}
+      // onBackdropPress={onClose}
       onBackButtonPress={onClose}
+      onSwipeComplete={() => {
+        onClose();
+      }}
+      swipeDirection="down"
       style={styles.modal}
       animationIn="slideInUp"
       animationOut="slideOutDown"
-      backdropColor="#000"
+      backdropColor="#132224"
       backdropOpacity={0.5}
       useNativeDriver={true}
       hideModalContentWhileAnimating={true}
-      avoidKeyboard={true}>
+      avoidKeyboard={true}
+      propagateSwipe={true}>
       <View style={styles.modalContent}>
         {/* Modal Header */}
         <ModalHeader title="Stats" onClose={onClose} />

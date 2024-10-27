@@ -88,10 +88,10 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
 
   // Farb-Mapping für spezifische Übungen
   const exerciseColors: {[key: string]: string} = {
-    Squat: Colors.red, // Rot
-    PushUp: Colors.red2, // Orange
-    PullUp: Colors.primary, // Grün
-    SitUp: Colors.secondary, // Violett
+    Squat: Colors.teal,
+    PushUp: Colors.purple,
+    PullUp: Colors.primary,
+    SitUp: Colors.secondary,
   };
 
   // Hilfsfunktion, um Farben zuzuweisen
@@ -142,6 +142,8 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
         style={styles.modal}
         animationIn="slideInUp"
         animationOut="slideOutDown"
+        onSwipeComplete={closeModal}
+        swipeDirection="down"
         backdropColor="#000"
         backdropOpacity={0.5}
         useNativeDriver={true}

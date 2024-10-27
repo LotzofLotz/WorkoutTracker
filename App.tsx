@@ -23,6 +23,7 @@ import StatsModal from './components/StatsModal';
 import Header from './components/Header';
 import Sound from 'react-native-sound';
 import Colors from './components/colors';
+import {BackHandler} from 'react-native';
 
 const App = (): React.JSX.Element => {
   const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
@@ -68,6 +69,27 @@ const App = (): React.JSX.Element => {
       sound.release();
     };
   }, []);
+
+  useEffect(() => {
+    const backAction = () => {
+      if (isButtonEnlarged || isAnimating) {
+        // Rücksetz-Animation ausführen
+        animateButtonBack();
+        // Standardverhalten des Back-Buttons verhindern
+        return true;
+      }
+      // Standardverhalten zulassen (z.B. App schließen)
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    // Bereinige den Event Listener beim Unmount
+    return () => backHandler.remove();
+  }, [isButtonEnlarged, isAnimating]);
 
   // Animations values for transformations
   const translateY = useRef(new Animated.Value(0)).current;
@@ -258,7 +280,7 @@ const App = (): React.JSX.Element => {
             style={styles.fullScreenTouchable}
             // onPress={() => animateButtonBack()}
             onPress={() => {
-              console.log('hehhe züü'), handleStartStop();
+              handleStartStop();
             }}
             activeOpacity={1}
             //pointerEvents="box-only"
