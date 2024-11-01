@@ -8,6 +8,7 @@ import {
   Text,
   Animated,
   Dimensions,
+  BackHandler,
 } from 'react-native';
 import TrackingModal from './components/TrackingModal';
 import SavedSetsComponent from './components/SavedSetsComponent';
@@ -23,7 +24,6 @@ import StatsModal from './components/StatsModal';
 import Header from './components/Header';
 import Sound from 'react-native-sound';
 import Colors from './components/colors';
-import {BackHandler} from 'react-native';
 
 const App = (): React.JSX.Element => {
   const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
@@ -37,7 +37,11 @@ const App = (): React.JSX.Element => {
   const [isTotalStatsModalVisible, setTotalStatsModalVisible] =
     useState<boolean>(false);
   const [isCountingDown, setIsCountingDown] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState<number | string | null>(null);
+  const [trackingStartTime, setTrackingStartTime] = useState<number | null>(
+    null,
+  ); // Neue State-Variable
+  const [canStop, setCanStop] = useState(false); // Neue State-Variable
   const backgroundOpacity = useRef(new Animated.Value(0)).current;
 
   const {model, isLoading} = useModel();
@@ -55,7 +59,7 @@ const App = (): React.JSX.Element => {
   } = usePrediction({model, recordedData});
 
   useEffect(() => {
-    Sound.setCategory('Playback');
+    Sound.setCategory('Playback', true);
 
     const sound = new Sound('sui_countdown.mp3', Sound.MAIN_BUNDLE, error => {
       if (error) {
@@ -109,25 +113,45 @@ const App = (): React.JSX.Element => {
     loadSets();
   }, [showResultsModal]);
 
-  //Countdown effect without displaying 0
+  // Countdown effect without displaying 0
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (countdown !== null && countdown > 1) {
-      timer = setTimeout(() => {
-        setCountdown(prev => (prev !== null ? prev - 1 : null));
-      }, 1000);
-    } else if (countdown === 1) {
-      // Countdown finished, start tracking
-      timer = setTimeout(() => {
-        setCountdown(null);
-        setIsTracking(true);
-        setIsCountingDown(false);
-      }, 1000);
+    if (isCountingDown && countdown !== null) {
+      if (typeof countdown === 'number' && countdown > 1) {
+        // Countdown läuft: 3, 2, 1
+        timer = setTimeout(() => {
+          setCountdown(countdown - 1);
+        }, 1000);
+      } else if (countdown === 1) {
+        // Countdown erreicht 1, nächsten Tick wird "GO"
+        timer = setTimeout(() => {
+          setCountdown('GO');
+          // Optional: Spiel einen Sound ab oder gib visuelles Feedback
+        }, 1000);
+      } else if (countdown === 'GO') {
+        // Zeige "GO" für eine Sekunde, dann starte das Tracking
+        timer = setTimeout(() => {
+          setCountdown(null);
+          setIsCountingDown(false);
+          setIsTracking(true);
+          setTrackingStartTime(Date.now());
+          // Setze einen Timer, um das Stoppen nach 3 Sekunden zu erlauben
+          setTimeout(() => {
+            setCanStop(true);
+          }, 3000);
+          // Optional: Zeige eine Toast-Nachricht für "GO"
+          Toast.show({
+            type: 'success',
+            text1: 'GO',
+            text2: 'Tracking gestartet!',
+          });
+        }, 1000);
+      }
     }
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [countdown]);
+  }, [isCountingDown, countdown]);
 
   const animateButton = () => {
     if (isAnimating) return;
@@ -194,39 +218,53 @@ const App = (): React.JSX.Element => {
   const handleStartStop = () => {
     console.log('Button pressed, isTracking:', isTracking);
     if (isTracking) {
-      // Stop tracking
-      console.log('Stopping tracking...');
-      setIsTracking(false);
-      // Start prediction
-      predictLabel()
-        .then(() => {
-          // Animate back and show results modal
-          animateButtonBack(() => setShowResultsModal(true));
-        })
-        .catch(error => {
-          console.error('Error during prediction:', error);
+      if (canStop) {
+        // Stoppe das Tracking
+        console.log('Stopping tracking...');
+        setIsTracking(false);
+        setTrackingStartTime(null);
+        setCanStop(false);
+        // Starte die Vorhersage
+        predictLabel()
+          .then(() => {
+            // Animate back and show results modal
+            animateButtonBack(() => setShowResultsModal(true));
+          })
+          .catch(error => {
+            console.error('Error during prediction:', error);
+          });
+      } else {
+        // Kann das Tracking noch nicht stoppen
+        const remainingTime = Math.ceil(
+          (3000 - (Date.now() - (trackingStartTime || 0))) / 1000,
+        );
+        Toast.show({
+          type: 'info',
+          text1: 'Bitte warte',
+          text2: `Warte noch ${remainingTime} Sekunden, bevor du das Tracking stoppst.`,
         });
+      }
     } else if (!isCountingDown) {
-      // Start countdown
+      // Starte den Countdown und das Tracking
       console.log('Starting countdown and tracking...');
       setIsCountingDown(true);
-      setCountdown(3); // Start value for the countdown
-      // Play countdown sound
+      setCountdown(3); // Startwert für das Countdown
+      // Spiele den Countdown-Sound ab
       countdownSound?.play(success => {
         if (!success) {
           console.log('Sound playback failed');
         }
       });
-      // Tracking is started through the countdown effect
+      // Animieren des Buttons
       animateButton();
     }
   };
 
-  // Function to add a new set
+  // Funktion zum Hinzufügen eines neuen Sets
   const addSet = async (newSet: WorkoutSet) => {
     try {
       await saveWorkoutSet(newSet);
-      setSets(prevSets => [...prevSets, newSet]); // Update the state
+      setSets(prevSets => [...prevSets, newSet]); // Aktualisiere den State
       console.log('SET ADDED');
       Toast.show({
         type: 'success',
@@ -243,7 +281,7 @@ const App = (): React.JSX.Element => {
     }
   };
 
-  // Callback function called by TrackingModal to add a new set
+  // Callback-Funktion, die von TrackingModal aufgerufen wird, um ein neues Set hinzuzufügen
   const handleSaveAndClose = (adjustedReps: number) => {
     const newSet: WorkoutSet = {
       timestamp: new Date().toISOString(),
@@ -278,13 +316,10 @@ const App = (): React.JSX.Element => {
         {isButtonEnlarged || isAnimating ? (
           <TouchableOpacity
             style={styles.fullScreenTouchable}
-            // onPress={() => animateButtonBack()}
             onPress={() => {
               handleStartStop();
             }}
-            activeOpacity={1}
-            //pointerEvents="box-only"
-          ></TouchableOpacity>
+            activeOpacity={1}></TouchableOpacity>
         ) : null}
       </Animated.View>
 
@@ -348,8 +383,7 @@ const App = (): React.JSX.Element => {
             zIndex: 4,
           },
         ]}
-        pointerEvents={isButtonEnlarged || isAnimating ? 'none' : 'auto'} // Hinzugefügt
-      >
+        pointerEvents={isButtonEnlarged || isAnimating ? 'none' : 'auto'}>
         <TouchableOpacity
           onPress={() => {
             if (!isButtonEnlarged) {
@@ -363,7 +397,11 @@ const App = (): React.JSX.Element => {
           {!isButtonEnlarged ? (
             <Icon name="plus" size={54} color="#fff" />
           ) : isCountingDown && countdown !== null ? (
-            <Text style={styles.buttonText}>{countdown}</Text>
+            <Text style={styles.buttonText}>
+              {typeof countdown === 'number' ? countdown : countdown}
+            </Text>
+          ) : isTracking ? (
+            <Text style={styles.buttonText}>{canStop ? 'Stop' : 'GO'}</Text>
           ) : (
             <Text style={styles.buttonText}>
               {isTracking ? 'Stop' : 'Start'}
