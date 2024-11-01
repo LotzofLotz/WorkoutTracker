@@ -1,5 +1,5 @@
 // components/ProgressModal.tsx
-import React, {useState, useMemo} from 'react';
+import React, {useState, useMemo, useCallback} from 'react';
 import {
   View,
   Text,
@@ -28,7 +28,7 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
   const [selectedStat, setSelectedStat] = useState<string>('Total'); // State für den aktuell ausgewählten Stat
 
   // Funktion zur Gruppierung der Sets nach Datum
-  const groupSetsByDate = (sets: WorkoutSet[]) => {
+  const groupSetsByDate = useCallback((sets: WorkoutSet[]) => {
     const groups: {[date: string]: WorkoutSet[]} = {};
 
     sets.forEach(set => {
@@ -40,10 +40,13 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
     });
 
     return groups;
-  };
+  }, []);
 
   // Gruppiere die Sets nach Datum
-  const groupedSets = useMemo(() => groupSetsByDate(sets), [sets]);
+  const groupedSets = useMemo(
+    () => groupSetsByDate(sets),
+    [sets, groupSetsByDate],
+  );
 
   // Sortiere die Daten nach Datum (aufsteigend)
   const sortedDates = useMemo(() => {
@@ -55,19 +58,22 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
   }, [groupedSets]);
 
   // Funktion zur Berechnung der Reps pro Tag basierend auf der ausgewählten Übung
-  const calculateRepsPerDay = (exercise: string | 'Total') => {
-    return sortedDates.map(date => {
-      const setsForDate = groupedSets[date];
-      if (exercise === 'Total') {
-        return setsForDate.reduce((sum, set) => sum + set.repetitions, 0);
-      } else {
-        // Kein Plural, da Button-Titel jetzt den Set-Labels entsprechen
-        return setsForDate
-          .filter(set => set.label.toLowerCase() === exercise.toLowerCase())
-          .reduce((sum, set) => sum + set.repetitions, 0);
-      }
-    });
-  };
+  const calculateRepsPerDay = useCallback(
+    (exercise: string | 'Total') => {
+      return sortedDates.map(date => {
+        const setsForDate = groupedSets[date];
+        if (exercise === 'Total') {
+          return setsForDate.reduce((sum, set) => sum + set.repetitions, 0);
+        } else {
+          // Kein Plural, da Button-Titel jetzt den Set-Labels entsprechen
+          return setsForDate
+            .filter(set => set.label.toLowerCase() === exercise.toLowerCase())
+            .reduce((sum, set) => sum + set.repetitions, 0);
+        }
+      });
+    },
+    [groupedSets, sortedDates],
+  );
 
   // Funktion, um die Chart-Daten basierend auf der ausgewählten Übung zu berechnen
   const getChartData = useMemo(() => {
@@ -76,7 +82,7 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
 
     // Labels basierend auf den sortierten Daten
     const labels = sortedDates.map(date => {
-      const [day, month, year] = date.split('.');
+      const [day, month] = date.split('.');
       return `${day}.${month}`;
     });
 
@@ -88,7 +94,9 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
         },
       ],
     };
-  }, [selectedStat, groupedSets, sortedDates]);
+  }, [selectedStat, calculateRepsPerDay, sortedDates]);
+
+  // Farb-Mapping für spezifische Übungen
 
   return (
     <Modal
@@ -100,7 +108,7 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
       style={styles.modal}
       animationIn="slideInUp"
       animationOut="slideOutDown"
-      backdropColor="#000"
+      backdropColor={Colors.darkBackdrop}
       backdropOpacity={0.5}
       useNativeDriver={true}
       hideModalContentWhileAnimating={true}
@@ -140,12 +148,12 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
               width={Dimensions.get('window').width * 0.9} // 90% der Bildschirmbreite
               height={220}
               chartConfig={{
-                backgroundColor: '#ffffff',
-                backgroundGradientFrom: '#ffffff',
-                backgroundGradientTo: '#ffffff',
+                backgroundColor: Colors.background,
+                backgroundGradientFrom: Colors.background,
+                backgroundGradientTo: Colors.background,
                 decimalPlaces: 0, // keine Nachkommastellen
-                color: (opacity = 1) => `rgba(0, 48, 73, ${opacity})`, // #003049 für die Linienfarbe
-                fillShadowGradient: '#669bbc',
+                color: (opacity = 1) => `rgba(0, 48, 73, ${opacity})`, // Linienfarbe
+                fillShadowGradient: Colors.secondary,
                 fillShadowGradientOpacity: 0.6,
                 style: {
                   borderRadius: 16,
@@ -153,18 +161,12 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
                 propsForDots: {
                   r: '4',
                   strokeWidth: '2',
-                  stroke: '#003049', // #003049 für die Punkte
-                  fill: '#669bbc', // Optional: Füllfarbe der Punkte
+                  stroke: Colors.primary,
+                  fill: Colors.secondary,
                 },
-                // Optional: Hintergrund der Grafik anpassen
-                // fillShadowGradient: '#669bbc', // Für den Bereich unter der Linie
-                // fillShadowGradientOpacity: 0.3,
               }}
               bezier
-              style={{
-                marginVertical: 8,
-                borderRadius: 16,
-              }}
+              style={styles.lineChartStyle}
             />
           )}
         </View>
@@ -173,55 +175,69 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
   );
 };
 
+// //Hilfsfunktion zur Formatierung von Datum
+// const formatDate = (dateString: string) => {
+//   const [day, month] = dateString.split('.');
+//   return `${day}.${month}`;
+// };
+
 const styles = StyleSheet.create({
-  modal: {
-    justifyContent: 'flex-end',
-    alignItems: 'stretch', // Vollständige Breite
-    margin: 0,
-  },
-  modalContent: {
-    width: '100%', // Vollständige Breite
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 20,
-    maxHeight: '80%', // Höhe anpassen, um genügend Platz für den Inhalt zu bieten
-  },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
     paddingVertical: 15,
   },
-  statButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20, // Mehr Padding für breitere Buttons
-    backgroundColor: '#f1f1f1', //fdf0d5
-    borderRadius: 10,
-    marginHorizontal: 5,
+  chartContainer: {
     alignItems: 'center',
-    minWidth: 90, // Mindestbreite für die Buttons
+    marginTop: 20,
+    width: '100%',
+  },
+  lineChartStyle: {
+    borderRadius: 16,
+    marginVertical: 8,
+  },
+  modal: {
+    alignItems: 'stretch',
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
+  modalContent: {
+    backgroundColor: Colors.background, // Ersetzt 'white' mit Colors.background
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+
+    paddingBottom: 20,
+    width: '100%', // Vollständige Breite
+    // Höhe anpassen, um genügend Platz für den Inhalt zu bieten
+  },
+  noDataText: {
+    color: Colors.textSecondary, // Ersetzt '#888' mit Colors.textSecondary
+    fontSize: 16,
+    textAlign: 'center',
   },
   selectedButton: {
     backgroundColor: Colors.secondary, // Farbe für den ausgewählten Button
   },
-  statButtonText: {
-    fontSize: 14,
-    color: '#333',
-  },
   selectedButtonText: {
-    color: 'white', // Textfarbe für den ausgewählten Button
+    color: Colors.background, // Textfarbe für den ausgewählten Button
     fontWeight: 'bold',
   },
-  chartContainer: {
-    width: '100%',
+  statButton: {
     alignItems: 'center',
-    marginTop: 20,
+    backgroundColor: Colors.border, // Ersetzt '#f1f1f1' mit Colors.border oder einer passenden Farbe
+    borderRadius: 10,
+    marginHorizontal: 5,
+    minWidth: 90,
+    paddingHorizontal: 20,
+
+    paddingVertical: 10,
+    // Mindestbreite für die Buttons
   },
-  noDataText: {
-    fontSize: 16,
-    color: '#888',
-    textAlign: 'center',
+  statButtonText: {
+    color: Colors.textPrimary, // Ersetzt '#333' mit Colors.textPrimary
+    fontSize: 14,
   },
 });
 

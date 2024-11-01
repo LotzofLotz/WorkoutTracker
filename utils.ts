@@ -1,7 +1,6 @@
 // utils.ts
 
 import * as numeric from 'numeric';
-import {Matrix} from 'ml-matrix';
 const {sgg} = require('ml-savitzky-golay-generalized');
 
 // 1. Funktion zum Auffüllen oder Trunkieren einer Sequenz

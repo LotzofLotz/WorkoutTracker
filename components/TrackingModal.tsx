@@ -1,3 +1,4 @@
+// components/TrackingModal.tsx
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -5,12 +6,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Dimensions,
 } from 'react-native';
 import Modal from 'react-native-modal';
 import ChartComponent from './ChartComponent';
-import Sound from 'react-native-sound';
-import ModalHeader from './ModalHeader'; // Importiere ModalHeader
+
+import ModalHeader from './ModalHeader';
 import Colors from './colors';
 
 interface Prediction {
@@ -26,9 +26,9 @@ interface TrackingModalProps {
   chartData: number[];
   peaks: number[];
   predictions: Prediction[];
-  quality: number;
-  jerk: number;
-  onSaveAndClose: (adjustedReps: number) => void; // Ändere die Signatur
+  // quality: number; // Auskommentiert
+  // jerk: number;    // Auskommentiert
+  onSaveAndClose: (adjustedReps: number) => void;
 }
 
 const TrackingModal: React.FC<TrackingModalProps> = ({
@@ -39,31 +39,33 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   chartData,
   peaks,
   predictions,
-  quality,
-  jerk,
+  // quality,
+  // jerk,
   onSaveAndClose,
 }) => {
-  const [showButton, setShowButton] = useState<boolean>(true);
-  const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
+  // Entfernt ungenutzte Variablen
+  // const [showButton, setShowButton] = useState<boolean>(true);
+  // const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
   const [adjustedReps, setAdjustedReps] = useState<number>(predReps); // Neuer Zustand
 
-  const screenHeight = Dimensions.get('window').height; // Ermittelt die Höhe des Bildschirms
+  // Entfernt ungenutzte Variable
+  // const screenHeight = Dimensions.get('window').height;
 
-  useEffect(() => {
-    Sound.setCategory('Playback');
+  // useEffect(() => {
+  //   Sound.setCategory('Playback');
 
-    const sound = new Sound('sui_countdown.mp3', Sound.MAIN_BUNDLE, error => {
-      if (error) {
-        console.log('Failed to load the sound', error);
-        return;
-      }
-      setCountdownSound(sound);
-    });
+  //   const sound = new Sound('sui_countdown.mp3', Sound.MAIN_BUNDLE, error => {
+  //     if (error) {
+  //       console.log('Failed to load the sound', error);
+  //       return;
+  //     }
+  //     // setCountdownSound(sound); // Entfernt, da countdownSound nicht verwendet wird
+  //   });
 
-    return () => {
-      sound.release();
-    };
-  }, []);
+  //   return () => {
+  //     sound.release();
+  //   };
+  // }, []);
 
   // Aktualisiere adjustedReps, wenn predReps sich ändert
   useEffect(() => {
@@ -113,12 +115,15 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
               </Text>
             ))}
 
-            {/* <Text style={styles.metricText}>
+            {/* Auskommentierte Texte */}
+            {/* 
+            <Text style={styles.metricText}>
               Quality Correlation: {quality.toFixed(2)}
             </Text>
             <Text style={styles.metricText}>
               Quality Jerk: {jerk.toFixed(2)}
-            </Text> */}
+            </Text>
+            */}
 
             <Text style={styles.labelText}>LABEL: </Text>
             <Text style={styles.predLabelText}> {predLabel}</Text>
@@ -154,143 +159,144 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  modal: {
-    justifyContent: 'flex-end',
-    margin: 0,
-  },
-  modalContent: {
-    width: '100%',
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 20,
-    alignItems: 'center',
-    // Höhe wird dynamisch gesetzt basierend auf showButton
-  },
-  modalBody: {
-    padding: 20,
-    alignItems: 'center',
-  },
-
-  repsAdjustContainer: {
-    // flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 15,
-  },
-  repsLabel: {
-    color: 'black',
-    fontSize: 24,
-    // fontWeight: 'bold',
-    marginRight: 10,
-  },
-  adjustButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   adjustButton: {
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
     alignItems: 'center',
-    height: 80,
-    width: 80,
-    padding: 10,
+    backgroundColor: Colors.primary, // Ersetzt Farbliteral
     borderRadius: 5,
+    height: 80,
+    justifyContent: 'center',
+    padding: 10,
+    width: 80,
   },
   adjustButtonText: {
+    color: Colors.background, // Ersetzt 'white' mit Colors.background
     fontSize: 44,
     fontWeight: 'bold',
-    color: 'white',
   },
+  adjustButtons: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+
   adjustedReps: {
+    color: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
     fontSize: 44,
     fontWeight: 'bold',
-    color: 'black',
     marginHorizontal: 20,
     minWidth: 50,
     textAlign: 'center',
   },
-  startStopButton: {
-    width: 350,
-    height: 350,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ff4d4d',
-    borderRadius: 200,
-    marginBottom: 20,
-  },
-  buttonText: {
-    fontSize: 54,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  resultsContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingBottom: 20,
-  },
+  // Entfernt ungenutzte buttonText
+  // buttonText: {
+  //   color: 'white',
+  //   fontSize: 54,
+  //   fontWeight: 'bold',
+  // },
   chartContainer: {
-    width: '100%',
     alignItems: 'center',
     marginBottom: 20,
-  },
-  predictionText: {
-    color: 'black',
-    fontSize: 16,
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  metricText: {
-    color: 'black',
-    fontSize: 18,
-    marginTop: 10,
-    textAlign: 'center',
+    width: '100%',
   },
   labelText: {
-    color: 'black',
+    color: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
     fontSize: 24,
     marginTop: 15,
     textAlign: 'center',
     // fontWeight: 'bold',
   },
+  // Entfernt ungenutzte metricText
+  // metricText: {
+  //   color: 'black',
+  //   fontSize: 18,
+  //   marginTop: 10,
+  //   textAlign: 'center',
+  // },
+  modal: {
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
+  modalBody: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    alignItems: 'center',
+    backgroundColor: Colors.background, // Ersetzt 'white' mit Colors.background
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+    width: '100%',
+    // Höhe wird dynamisch gesetzt basierend auf showButton
+  },
   predLabelText: {
-    color: Colors.primary,
+    color: Colors.primary, // Ersetzt Colors.primary mit einer konsistenten Farbkonstanten
     fontSize: 44,
+    fontWeight: 'bold',
     marginTop: 10,
     textAlign: 'center',
-    fontWeight: 'bold',
   },
-  repsText: {
-    color: 'black',
-    fontSize: 24,
+  predictionText: {
+    color: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
+    fontSize: 16,
     marginTop: 5,
     textAlign: 'center',
+  },
+  repsAdjustContainer: {
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  repsLabel: {
+    color: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
+    fontSize: 24,
     // fontWeight: 'bold',
+    marginRight: 10,
+  },
+  // Entfernt ungenutzte repsText
+  // repsText: {
+  //   color: 'black',
+  //   fontSize: 24,
+  //   marginTop: 5,
+  //   textAlign: 'center',
+  //   // fontWeight: 'bold',
+  // },
+  resultsContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+    paddingBottom: 20,
+    width: '100%',
+  },
+  saveButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.secondary, // Ersetzt Farbliteral
+    borderRadius: 25,
+    elevation: 5,
+    height: 80,
+    justifyContent: 'center',
+    shadowColor: Colors.textSecondary, // Ersetzt '#000' mit Colors.textSecondary
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    width: 200,
   },
   saveButtonContainer: {
     alignSelf: 'center',
     marginTop: 20,
   },
-  saveButton: {
-    backgroundColor: Colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    //paddingVertical: 15,
-    //paddingHorizontal: 40,
-    height: 80,
-    width: 200,
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
   saveButtonText: {
-    color: 'white',
+    color: Colors.background, // Ersetzt 'white' mit Colors.background
     fontSize: 34,
     fontWeight: 'bold',
   },
+  // Entfernt ungenutzte startStopButton
+  // startStopButton: {
+  //   alignItems: 'center',
+  //   backgroundColor: '#ff4d4d',
+  //   borderRadius: 200,
+  //   height: 350,
+  //   justifyContent: 'center',
+  //   marginBottom: 20,
+  //   width: 350,
+  // },
 });
 
 export default TrackingModal;

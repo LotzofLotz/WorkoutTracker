@@ -15,7 +15,7 @@ const ModalHeader: React.FC<ModalHeaderProps> = ({title, onClose}) => {
       <Text style={styles.headerTitle}>{title}</Text>
       {onClose && (
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color="#fff" />
+          <Ionicons name="close" size={24} color={Colors.background} />
         </TouchableOpacity>
       )}
     </View>
@@ -23,28 +23,28 @@ const ModalHeader: React.FC<ModalHeaderProps> = ({title, onClose}) => {
 };
 
 const styles = StyleSheet.create({
+  closeButton: {
+    padding: 5,
+    position: 'absolute',
+    right: 10,
+  },
   headerContainer: {
-    width: '100%', // Stelle sicher, dass es 100% Breite hat
-    backgroundColor: Colors.primary,
-    paddingTop: 12, // Minimaler Abstand für das Modal
-    paddingBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+    backgroundColor: Colors.primary,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingBottom: 12,
+    paddingTop: 12,
+    position: 'relative',
+    width: '100%',
   },
   headerTitle: {
-    color: '#fff',
+    color: Colors.background,
     fontSize: 25,
     fontWeight: 'bold',
     textAlign: 'center',
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 10,
-    padding: 5,
   },
 });
 

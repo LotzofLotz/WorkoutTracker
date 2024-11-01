@@ -1,5 +1,5 @@
 // App.tsx
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {
   TouchableOpacity,
   SafeAreaView,
@@ -44,9 +44,9 @@ const App = (): React.JSX.Element => {
   const [canStop, setCanStop] = useState(false); // Neue State-Variable
   const backgroundOpacity = useRef(new Animated.Value(0)).current;
 
-  const {model, isLoading} = useModel();
+  const {model} = useModel();
   const {recordedData, resetRecordedData} = useSensorData(isTracking);
-  const {timeElapsed, resetTimeElapsed} = useTimer(isTracking);
+  useTimer(isTracking);
   const {
     predictLabel,
     predReps,
@@ -58,6 +58,18 @@ const App = (): React.JSX.Element => {
     predictions,
   } = usePrediction({model, recordedData});
 
+  const translateY = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+
+  // Funktion zum Laden der Sets beim Start
+  const loadSets = async () => {
+    try {
+      const fetchedSets = await getWorkoutSets();
+      setSets(fetchedSets);
+    } catch (error) {
+      console.error('Error loading sets:', error);
+    }
+  };
   useEffect(() => {
     Sound.setCategory('Playback', true);
 
@@ -75,45 +87,10 @@ const App = (): React.JSX.Element => {
   }, []);
 
   useEffect(() => {
-    const backAction = () => {
-      if (isButtonEnlarged || isAnimating) {
-        // Rücksetz-Animation ausführen
-        animateButtonBack();
-        // Standardverhalten des Back-Buttons verhindern
-        return true;
-      }
-      // Standardverhalten zulassen (z.B. App schließen)
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      backAction,
-    );
-
-    // Bereinige den Event Listener beim Unmount
-    return () => backHandler.remove();
-  }, [isButtonEnlarged, isAnimating]);
-
-  // Animations values for transformations
-  const translateY = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(1)).current;
-
-  // Function to load sets on start
-  const loadSets = async () => {
-    try {
-      const fetchedSets = await getWorkoutSets();
-      setSets(fetchedSets);
-    } catch (error) {
-      console.error('Error loading sets:', error);
-    }
-  };
-
-  useEffect(() => {
     loadSets();
   }, [showResultsModal]);
 
-  // Countdown effect without displaying 0
+  // Countdown Effekt ohne Anzeige von 0
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isCountingDown && countdown !== null) {
@@ -153,6 +130,63 @@ const App = (): React.JSX.Element => {
     };
   }, [isCountingDown, countdown]);
 
+  // Definition von animateButtonBack mit useCallback
+  const animateButtonBack = useCallback(
+    (callback?: () => void) => {
+      if (isAnimating) return;
+      setIsAnimating(true);
+
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(scale, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateY, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.timing(backgroundOpacity, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsAnimating(false);
+        setIsButtonEnlarged(false);
+        if (callback) {
+          callback();
+        }
+      });
+    },
+    [isAnimating, backgroundOpacity, scale, translateY],
+  );
+
+  // Hinzufügen von animateButtonBack zu useEffect-Abhängigkeiten
+  useEffect(() => {
+    const backAction = () => {
+      if (isButtonEnlarged || isAnimating) {
+        // Rücksetz-Animation ausführen
+        animateButtonBack();
+        // Standardverhalten des Back-Buttons verhindern
+        return true;
+      }
+      // Standardverhalten zulassen (z.B. App schließen)
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    // Bereinige den Event Listener beim Unmount
+    return () => backHandler.remove();
+  }, [isButtonEnlarged, isAnimating, animateButtonBack]);
+
   const animateButton = () => {
     if (isAnimating) return;
     setIsAnimating(true);
@@ -181,37 +215,6 @@ const App = (): React.JSX.Element => {
     ]).start(() => {
       setIsAnimating(false);
       setIsButtonEnlarged(true);
-    });
-  };
-
-  const animateButtonBack = (callback?: () => void) => {
-    if (isAnimating) return;
-    setIsAnimating(true);
-
-    Animated.parallel([
-      Animated.sequence([
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(backgroundOpacity, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setIsAnimating(false);
-      setIsButtonEnlarged(false);
-      if (callback) {
-        callback();
-      }
     });
   };
 
@@ -289,7 +292,6 @@ const App = (): React.JSX.Element => {
       repetitions: adjustedReps, // Verwende die angepasste Reps-Zahl
     };
     addSet(newSet);
-    resetTimeElapsed();
     setShowResultsModal(false);
     resetRecordedData();
     Toast.show({
@@ -360,7 +362,7 @@ const App = (): React.JSX.Element => {
           style={styles.navButton}
           onPress={() => setTotalStatsModalVisible(true)}
           disabled={isButtonEnlarged || isAnimating}>
-          <Icon name="trophy" size={24} color="#fff" />
+          <Icon name="trophy" size={24} color={Colors.background} />
           <Text style={styles.navButtonText}>Stats</Text>
         </TouchableOpacity>
 
@@ -369,7 +371,7 @@ const App = (): React.JSX.Element => {
           style={styles.navButton}
           onPress={() => setProgressModalVisible(true)}
           disabled={isButtonEnlarged || isAnimating}>
-          <Icon name="bar-chart" size={24} color="#fff" />
+          <Icon name="bar-chart" size={24} color={Colors.background} />
           <Text style={styles.navButtonText}>Progress</Text>
         </TouchableOpacity>
       </View>
@@ -378,9 +380,9 @@ const App = (): React.JSX.Element => {
       <Animated.View
         style={[
           styles.addButton,
+          styles.addButtonAnimated, // Zugefügter Style für zIndex
           {
             transform: [{translateY: translateY}, {scale: scale}],
-            zIndex: 4,
           },
         ]}
         pointerEvents={isButtonEnlarged || isAnimating ? 'none' : 'auto'}>
@@ -395,7 +397,7 @@ const App = (): React.JSX.Element => {
           style={styles.addButtonTouchable}
           disabled={isCountingDown && !isTracking}>
           {!isButtonEnlarged ? (
-            <Icon name="plus" size={54} color="#fff" />
+            <Icon name="plus" size={54} color={Colors.background} />
           ) : isCountingDown && countdown !== null ? (
             <Text style={styles.buttonText}>
               {typeof countdown === 'number' ? countdown : countdown}
@@ -418,84 +420,90 @@ const App = (): React.JSX.Element => {
 
 // Stylesheet for styling components
 const styles = StyleSheet.create({
+  addButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.red,
+    borderRadius: 55,
+    bottom: 10,
+    elevation: 5,
+    height: 110,
+    justifyContent: 'center',
+    left: Dimensions.get('window').width / 2 - 55,
+    position: 'absolute',
+    shadowColor: Colors.textSecondary, // Replaced '#000' with Colors.textSecondary
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    width: 110,
+    zIndex: 2, // Initial zIndex
+  },
+  addButtonAnimated: {
+    zIndex: 4, // Moved from inline style to StyleSheet
+  },
+  addButtonTouchable: {
+    alignItems: 'center',
+    height: '100%',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  backgroundOverlay: {
+    backgroundColor: Colors.textSecondary, // Replaced 'black' with Colors.textSecondary
+    bottom: 0,
+    elevation: 2,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 2,
+  },
+  buttonText: {
+    color: Colors.background, // Replaced 'white' with Colors.background
+    fontSize: 38,
+    fontWeight: 'bold',
+  },
   container: {
+    backgroundColor: Colors.background, // Replaced '#fff' with Colors.background
     flex: 1,
-    backgroundColor: '#fff',
     position: 'relative',
+  },
+  fullScreenTouchable: {
+    flex: 1,
+    height: '100%',
+    width: '100%',
   },
   mainContent: {
     flex: 1,
     position: 'relative',
   },
-  backgroundOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'black',
-    zIndex: 2,
-    elevation: 2,
-  },
-  fullScreenTouchable: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
   navBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: Colors.primary,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 50,
     alignItems: 'center',
-    shadowColor: '#000',
+    backgroundColor: Colors.primary,
+    bottom: 0,
+    elevation: 5,
+    flexDirection: 'row',
+    height: 60,
+    justifyContent: 'space-between',
+    left: 0,
+    paddingHorizontal: 50,
+    position: 'absolute',
+    right: 0,
+    shadowColor: Colors.textSecondary, // Replaced '#000' with Colors.textSecondary
     shadowOffset: {width: 0, height: -2},
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 5,
     zIndex: 1,
   },
   navButton: {
     alignItems: 'center',
   },
   navButtonText: {
-    color: '#fff',
+    color: Colors.background, // Replaced '#fff' with Colors.background
     fontSize: 12,
     marginTop: 4,
   },
-  addButton: {
-    position: 'absolute',
-    bottom: 10,
-    left: Dimensions.get('window').width / 2 - 55,
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: Colors.red,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-    zIndex: 2,
-  },
-  addButtonTouchable: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: 38,
-    color: 'white',
-    fontWeight: 'bold',
-  },
+  // pieChart: {
+  //   marginVertical: 10,
+  // },
 });
 
 export default App;

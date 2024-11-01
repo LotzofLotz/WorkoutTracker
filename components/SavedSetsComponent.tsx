@@ -13,6 +13,7 @@ import Modal from 'react-native-modal';
 import {PieChart} from 'react-native-chart-kit';
 import ModalHeader from './ModalHeader'; // Importiere ModalHeader
 import Colors from './colors';
+
 interface SavedSetsComponentProps {
   sets: WorkoutSet[];
 }
@@ -96,21 +97,21 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
 
   // Hilfsfunktion, um Farben zuzuweisen
   const getColor = (label: string) => {
-    return exerciseColors[label] || '#34495e'; // Fallback-Farbe (dunkelgrau)
+    return exerciseColors[label] || Colors.textSecondary; // Ersetzt '#34495e' mit Colors.textSecondary
   };
 
   // Daten für den PieChart vorbereiten ohne Legendeigenschaften
-  const pieChartData = selectedExercises.map((exercise, index) => ({
+  const pieChartData = selectedExercises.map(exercise => ({
     name: exercise.label,
     population: exercise.totalReps,
     color: getColor(exercise.label),
-    legendFontColor: 'black',
+    legendFontColor: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
     legendFontSize: 15,
   }));
 
   return (
     <View style={styles.container}>
-      {/* <Text style={styles.title}>Gespeicherte Workouts</Text> */}
+      {/* Entfernt ungenutzte title */}
       {sortedDates.length === 0 ? (
         <Text style={styles.emptyText}>Keine Workouts gespeichert.</Text>
       ) : (
@@ -144,7 +145,7 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
         animationOut="slideOutDown"
         onSwipeComplete={closeModal}
         swipeDirection="down"
-        backdropColor="#000"
+        backdropColor={Colors.darkBackdrop}
         backdropOpacity={0.5}
         useNativeDriver={true}
         hideModalContentWhileAnimating={true}
@@ -158,8 +159,8 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
 
           {/* Inhalt des Modals */}
           <View style={styles.exercisesContainer}>
-            {selectedExercises.map((exercise, index) => (
-              <View key={index} style={styles.exerciseItem}>
+            {selectedExercises.map(exercise => (
+              <View key={exercise.label} style={styles.exerciseItem}>
                 <Text style={styles.exerciseLabel}>{exercise.label}</Text>
                 <View style={styles.exerciseStatsContainer}>
                   <Text style={styles.highlightedReps}>
@@ -172,21 +173,21 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
               </View>
             ))}
           </View>
-          <View style={{alignItems: 'center'}}>
+          <View style={styles.pieChartContainer}>
             <PieChart
               data={pieChartData}
               width={Dimensions.get('window').width * 0.8} // Breite des Charts
               height={220}
               chartConfig={{
-                backgroundColor: '#FFFFFF',
-                backgroundGradientFrom: '#FFFFFF',
-                backgroundGradientTo: '#FFFFFF',
+                backgroundColor: Colors.background,
+                backgroundGradientFrom: Colors.background,
+                backgroundGradientTo: Colors.background,
                 color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
               }}
               accessor="population"
               backgroundColor="transparent"
               paddingLeft="15"
-              //absolute // Zeigt absolute Werte anstelle von Prozenten
+              // absolute // Zeigt absolute Werte anstelle von Prozenten
             />
           </View>
           {/* Optional: Weitere Inhalte können hier hinzugefügt werden */}
@@ -208,89 +209,97 @@ const formatDate = (dateString: string) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
     paddingHorizontal: 20,
     paddingVertical: 10,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#888',
-    marginTop: 20,
-    fontSize: 16,
-  },
-  workoutItem: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-  },
-  workoutHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    width: '100%',
   },
   dateTitle: {
+    color: Colors.textSecondary, // Ersetzt '#444' mit Colors.textSecondary
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#444',
   },
-  totalReps: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    color: '#444',
-  },
-  // Styles für das Modal
-  modal: {
-    justifyContent: 'flex-end',
-    alignItems: 'stretch', // Ändere dies zu 'stretch', um die volle Breite zu nutzen
-    margin: 0,
-  },
-  modalContent: {
-    width: '100%', // Stelle sicher, dass es 100% Breite hat
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 20,
-    maxHeight: '80%', // Höhe anpassen, um genügend Platz für den Inhalt zu bieten
-  },
-  exercisesContainer: {
-    padding: 20,
-    alignItems: 'center',
+  emptyText: {
+    color: Colors.textSecondary, // Ersetzt '#888' mit Colors.textSecondary
+    fontSize: 16,
+    marginTop: 20,
+    textAlign: 'center',
   },
   exerciseItem: {
-    marginBottom: 15,
+    borderBottomColor: Colors.border, // Ersetzt '#eee' mit Colors.border
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
     paddingBottom: 10,
     width: '100%',
+  },
+
+  exerciseLabel: {
+    color: Colors.textPrimary, // Ersetzt '#333' mit Colors.textPrimary
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  exerciseSets: {
+    color: Colors.textSecondary, // Ersetzt '#555' mit Colors.textSecondary
+    fontSize: 16,
+  },
+  exerciseStatsContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+
+  exercisesContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+
+  highlightedReps: {
+    color: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
+    fontSize: 18, // Größere Schriftgröße für Hervorhebung
+    fontWeight: 'bold',
+    marginRight: 5,
+  },
+
+  // Styles für das Modal
+  modal: {
+    alignItems: 'stretch',
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
+
+  modalContent: {
+    backgroundColor: Colors.background,
+    // Stelle sicher, dass es 100% Breite hat
+    // Ersetzt 'white' mit Colors.background
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    paddingBottom: 20,
+
+    // Höhe anpassen, um genügend Platz für den Inhalt zu bieten
+    width: '100%',
+  },
+  pieChartContainer: {
+    alignItems: 'center', // Ersetzt Inline-Style { alignItems: 'center' }
+    marginVertical: 10,
+  },
+  totalReps: {
+    color: Colors.textSecondary, // Ersetzt '#444' mit Colors.textSecondary
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+
+  workoutHeader: {
+    alignItems: 'center', // Sollte vor justifyContent stehen
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  exerciseLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  exerciseStatsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  highlightedReps: {
-    fontSize: 18, // Größere Schriftgröße für Hervorhebung
-    fontWeight: 'bold',
-    color: 'black', // Rot für Hervorhebung
-    marginRight: 5,
-  },
-  exerciseSets: {
-    fontSize: 16,
-    color: '#555',
+  workoutItem: {
+    borderColor: Colors.border, // Ersetzt '#ccc' mit Colors.border
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 10,
+    padding: 15,
   },
 });
 

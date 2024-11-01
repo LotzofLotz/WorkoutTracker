@@ -32,7 +32,7 @@ function filterByDistance(
   const heights = indices.map(i => data[i]);
   const sortedIndexPositions = argsort(heights).reverse();
 
-  for (let current of sortedIndexPositions) {
+  for (const current of sortedIndexPositions) {
     if (toRemove[current]) continue;
 
     let neighbor = current - 1;
@@ -83,7 +83,6 @@ function filterByMinimumBetweenMaxima(
   }
   return filteredIndices;
 }
-
 
 function filterMaxima(
   indices: number[],

@@ -128,24 +128,24 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
 
 // Definiere die Styles
 const styles = StyleSheet.create({
+  chartStyle: {
+    borderRadius: 16,
+    marginVertical: 8,
+  },
   container: {
     padding: 0,
     // flex: 1,
     width: '100%',
   },
   loaderContainer: {
+    alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chartStyle: {
-    marginVertical: 8,
-    borderRadius: 16,
   },
   svg: {
+    left: 0,
     position: 'absolute',
     top: 0,
-    left: 0,
     // zIndex: 1, // Optional: kann je nach Bedarf hinzugefügt werden
   },
 });

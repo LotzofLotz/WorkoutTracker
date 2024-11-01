@@ -1,13 +1,6 @@
 // components/StatsModal.tsx
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  ScrollView,
-} from 'react-native';
+import {View, Text, StyleSheet, Dimensions, ScrollView} from 'react-native';
 import Modal from 'react-native-modal';
 import {PieChart} from 'react-native-chart-kit';
 import ModalHeader from './ModalHeader';
@@ -58,8 +51,8 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
   const exerciseColors: {[key: string]: string} = {
     Squat: Colors.teal,
     PushUp: Colors.purple,
-    PullUp: Colors.primary, // Grün
-    SitUp: Colors.secondary, // Violett
+    PullUp: Colors.primary,
+    SitUp: Colors.secondary,
   };
 
   // Hilfsfunktion, um Farben zuzuweisen
@@ -72,23 +65,20 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
     name: exercise.label,
     population: exercise.totalReps,
     color: getColor(exercise.label),
-    legendFontColor: '#7F7F7F',
+    legendFontColor: Colors.textSecondary,
     legendFontSize: 15,
   }));
 
   return (
     <Modal
       isVisible={isVisible}
-      // onBackdropPress={onClose}
       onBackButtonPress={onClose}
-      onSwipeComplete={() => {
-        onClose();
-      }}
+      onSwipeComplete={onClose}
       swipeDirection="down"
       style={styles.modal}
       animationIn="slideInUp"
       animationOut="slideOutDown"
-      backdropColor="#132224"
+      backdropColor={Colors.darkBackdrop}
       backdropOpacity={0.5}
       useNativeDriver={true}
       hideModalContentWhileAnimating={true}
@@ -128,7 +118,7 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
             backgroundColor="transparent"
             paddingLeft="15"
             absolute
-            style={{marginVertical: 10}}
+            style={styles.pieChart}
           />
         </ScrollView>
       </View>
@@ -137,52 +127,52 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
 };
 
 const styles = StyleSheet.create({
+  exerciseItem: {
+    alignItems: 'center',
+    borderBottomColor: Colors.border,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    width: '100%',
+  },
+  exerciseLabel: {
+    color: Colors.textPrimary,
+    fontSize: 18, // Größere Schriftgröße
+    fontWeight: 'bold',
+  },
+  exerciseStatsContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  highlightedReps: {
+    color: Colors.textSecondary,
+    fontSize: 18, // Größere Schriftgröße für Hervorhebung
+    fontWeight: 'bold',
+    marginRight: 5,
+  },
   modal: {
     justifyContent: 'flex-end', // Modal am unteren Rand anzeigen
     margin: 0,
   },
+  modalBody: {
+    alignItems: 'center',
+    padding: 20,
+  },
   modalContent: {
-    width: '100%',
-    backgroundColor: 'white',
+    backgroundColor: Colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 20,
-    // Höhe anpassen, um genügend Platz für den Inhalt zu bieten
     maxHeight: '80%',
-  },
-  modalBody: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  exerciseItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingBottom: 20,
+    // paddingHorizontal: 20,
+    // paddingTop: 20,
     width: '100%',
   },
-  exerciseLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  exerciseLabel: {
-    fontSize: 18, // Größere Schriftgröße
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  exerciseStatsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  highlightedReps: {
-    fontSize: 18, // Größere Schriftgröße für Hervorhebung
-    fontWeight: 'bold',
-    color: 'black', // Rot für Hervorhebung
-    marginRight: 5,
+  pieChart: {
+    marginVertical: 10,
   },
 });
 

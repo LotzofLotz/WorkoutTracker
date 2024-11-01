@@ -3,7 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
+       android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
         tools:targetApi="28"
-        tools:ignore="GoogleAppIndexingWarning"/>
-</manifest>
+        tools:ignore="GoogleAppIndexingWarning"
+        tools:replace="android:icon"/> <!-- Hier hinzugefügt -->
+</manifest>  

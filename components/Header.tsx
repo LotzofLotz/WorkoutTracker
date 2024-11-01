@@ -1,6 +1,6 @@
 // components/Header.tsx
 import React from 'react';
-import {View, Text, StyleSheet, StatusBar} from 'react-native';
+import {View, Text, StyleSheet} from 'react-native';
 import Colors from './colors';
 
 interface HeaderProps {
@@ -18,21 +18,24 @@ const Header: React.FC<HeaderProps> = ({title}) => {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    width: '100%',
-    backgroundColor: Colors.primary,
-    paddingTop: 20, // Für Safe Area und StatusBar Abstand
-    paddingBottom: 20,
     alignItems: 'center',
+
+    backgroundColor: Colors.primary, // Hintergrundfarbe zuerst#
+    elevation: 5,
     justifyContent: 'center',
-    // Schatten für einen modernen Look
-    shadowColor: '#000',
+
+    paddingBottom: 20,
+    paddingTop: 20, // Für Safe Area und StatusBar Abstand
+
+    shadowColor: Colors.shadow, // Ersetzt '#000' durch Colors.shadow
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 5,
+
+    width: '100%', // Width nach backgroundColor
   },
   headerTitle: {
-    color: '#fff',
+    color: Colors.background, // Ersetzt '#fff' durch Colors.textLight
     fontSize: 24,
     fontWeight: 'bold',
   },
