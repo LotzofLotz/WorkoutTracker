@@ -4,8 +4,11 @@
 
     <application
        android:icon="@mipmap/ic_launcher"
+    android:roundIcon="@mipmap/ic_launcher_round"
         android:usesCleartextTraffic="true"
+        android:label="@string/app_name"
         tools:targetApi="28"
         tools:ignore="GoogleAppIndexingWarning"
-        tools:replace="android:icon"/> <!-- Hier hinzugefügt -->
+        tools:replace="android:icon"/> 
+        
 </manifest>  
