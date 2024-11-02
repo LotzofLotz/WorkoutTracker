@@ -1,3 +1,4 @@
+// hooks/usePrediction.ts
 import {useState} from 'react';
 import {
   applySavitzkyGolayFilter,
@@ -64,129 +65,104 @@ const usePrediction = ({model, recordedData}: UsePredictionProps) => {
       return;
     }
 
-    // Daten vorverarbeiten: Glätten und Mittelwert subtrahieren
-    const filteredYData = applySavitzkyGolayFilter(recordedData.accY, 9, 3);
-    const filteredXData = applySavitzkyGolayFilter(recordedData.accX, 9, 3);
-    const filteredZData = applySavitzkyGolayFilter(recordedData.accZ, 9, 3);
+    // Preprocess data
+    const filteredY = applySavitzkyGolayFilter(recordedData.accY, 9, 3);
+    const filteredX = applySavitzkyGolayFilter(recordedData.accX, 9, 3);
+    const filteredZ = applySavitzkyGolayFilter(recordedData.accZ, 9, 3);
 
-    const yDataMeanSubtracted = subtractMean(filteredYData);
-    const zDataMeanSubtracted = subtractMean(filteredZData);
-    const xDataMeanSubtracted = subtractMean(filteredXData);
+    const yMeanSubtracted = subtractMean(filteredY);
+    const xMeanSubtracted = subtractMean(filteredX);
+    const zMeanSubtracted = subtractMean(filteredZ);
 
-    // Jerk berechnen
-    const avgJerk = calculateOverallJerk(
-      filteredXData,
-      filteredYData,
-      filteredZData,
-    );
+    // Calculate jerk
+    const avgJerk = calculateOverallJerk(filteredX, filteredY, filteredZ);
     setJerk(avgJerk);
 
-    // Erstelle eine Datenmatrix für PCA
-    const dataMatrix = new Matrix(xDataMeanSubtracted.length, 3);
-    for (let i = 0; i < xDataMeanSubtracted.length; i++) {
+    // Prepare data matrix for PCA
+    const dataMatrix = new Matrix(xMeanSubtracted.length, 3);
+    for (let i = 0; i < xMeanSubtracted.length; i++) {
       dataMatrix.setRow(i, [
-        xDataMeanSubtracted[i],
-        yDataMeanSubtracted[i],
-        zDataMeanSubtracted[i],
+        xMeanSubtracted[i],
+        yMeanSubtracted[i],
+        zMeanSubtracted[i],
       ]);
     }
 
-    // PCA anwenden
+    // Apply PCA
     const pca = new PCA(dataMatrix);
     const transformedData = pca.predict(dataMatrix).to2DArray();
 
-    // Erste Hauptkomponente extrahieren
-    const firstPrincipalComponent: number[] = transformedData.map(
-      (row: number[]) => row[0],
-    );
+    // Extract first principal component
+    const firstPC: number[] = transformedData.map(row => row[0]);
 
-    // Normalisieren der ersten Hauptkomponente
-    const normalizedPC1 = normalizeToRange(firstPrincipalComponent);
+    // Normalize PCA data
+    const normalizedPC1 = normalizeToRange(firstPC);
     setChartData(normalizedPC1);
 
-    // Peaks finden
-    const peaks =
+    // Find peaks
+    const detectedPeaks =
       normalizedPC1[0] > 0
         ? findPeaks(normalizedPC1, 7, 0, 0)
         : findPeaks(invertArray(normalizedPC1), 7, 0, 0);
 
-    setPeaks(peaks);
-    console.log('PEAKS:', peaks);
-    setPredReps(peaks.length - 1);
+    setPeaks(detectedPeaks);
+    setPredReps(detectedPeaks.length - 1);
 
-    // Extrahiere Datensegmente zwischen Peaks
+    // Extract segments between peaks
     const extractedData: Record<string, any> = {};
-    for (let i = 0; i < peaks.length - 1; i++) {
-      const start = peaks[i];
-      const end = peaks[i + 1];
-
-      const segmentAccX = recordedData.accX.slice(start, end);
-      const segmentAccY = recordedData.accY.slice(start, end);
-      const segmentAccZ = recordedData.accZ.slice(start, end);
-      const segmentGyroX = recordedData.gyroX.slice(start, end);
-      const segmentGyroY = recordedData.gyroY.slice(start, end);
-      const segmentGyroZ = recordedData.gyroZ.slice(start, end);
+    for (let i = 0; i < detectedPeaks.length - 1; i++) {
+      const start = detectedPeaks[i];
+      const end = detectedPeaks[i + 1];
 
       extractedData[`Rep${i + 1}`] = {
-        accX: segmentAccX,
-        accY: segmentAccY,
-        accZ: segmentAccZ,
-        gyroX: segmentGyroX,
-        gyroY: segmentGyroY,
-        gyroZ: segmentGyroZ,
+        accX: recordedData.accX.slice(start, end),
+        accY: recordedData.accY.slice(start, end),
+        accZ: recordedData.accZ.slice(start, end),
+        gyroX: recordedData.gyroX.slice(start, end),
+        gyroY: recordedData.gyroY.slice(start, end),
+        gyroZ: recordedData.gyroZ.slice(start, end),
       };
     }
 
-    // Berechne die Gesamtähnlichkeit zwischen den Wiederholungen
-    const targetLength = 27; // Ziel-Länge nach Padding
+    // Calculate overall similarity
     const overallSimilarity = calculateOverallSimilarity(
       extractedData,
-      targetLength,
+      maxLength,
     );
     setQuality(overallSimilarity);
 
-    // Modellvorhersagen durchführen
+    // Make predictions
     const predictionsArray: Prediction[] = [];
     for (let i = 1; i <= 3; i++) {
-      // Annahme: Wir analysieren die ersten 3 Wiederholungen
       const rep = extractedData[`Rep${i}`];
       if (!rep) {
-        console.error(`No data in extractedData for Rep${i}`);
+        console.error(`No data for Rep${i}`);
         continue;
       }
 
-      // Daten polstern
       const paddedRep = padReps(rep, maxLength);
       const preparedData = prepareDataForModel(paddedRep, maxLength);
-      if (preparedData.length === 0) {
-        continue;
-      }
+      if (preparedData.length === 0) continue;
 
-      // Daten in Float32Array umwandeln
       const floatArray = new Float32Array(preparedData);
 
       try {
-        // Modell ausführen
         const output = await model.run([floatArray]);
         const outputArray = output[0] as number[];
-        console.log('output array:', outputArray);
-
-        // Bestimme das maximale Ergebnis
         const maxIndex = outputArray.indexOf(Math.max(...outputArray));
-        console.log(`Rep${i} maxIndex:`, maxIndex);
 
         predictionsArray.push({
           label: classNames[maxIndex],
           probability: outputArray[maxIndex],
         });
       } catch (error) {
-        console.error(`Error during model prediction for Rep${i}:`, error);
+        console.error(`Error during prediction for Rep${i}:`, error);
       }
     }
 
     setPredictions(predictionsArray);
 
-    // Bestimme das finale Label basierend auf den Vorhersagen
+    // Determine final label
     let finalLabel: string;
     if (
       predictionsArray[0] &&
@@ -197,8 +173,7 @@ const usePrediction = ({model, recordedData}: UsePredictionProps) => {
     } else {
       const votes: {[key: string]: number} = {};
       predictionsArray.forEach(pred => {
-        if (!votes[pred.label]) votes[pred.label] = 0;
-        votes[pred.label]++;
+        votes[pred.label] = (votes[pred.label] || 0) + 1;
       });
       finalLabel = Object.keys(votes).reduce((a, b) =>
         votes[a] > votes[b] ? a : b,
@@ -207,22 +182,22 @@ const usePrediction = ({model, recordedData}: UsePredictionProps) => {
 
     setPredLabel(finalLabel);
 
-    // Setze die Email-Daten
-    const emailData: EmailData = {
+    // Set email data
+    const emailPayload: EmailData = {
       rawX: recordedData.accX,
       rawY: recordedData.accY,
       rawZ: recordedData.accZ,
-      smoothedX: filteredXData,
-      smoothedY: filteredYData,
-      smoothedZ: filteredZData,
-      normalizedX: xDataMeanSubtracted,
-      normalizedY: yDataMeanSubtracted,
-      normalizedZ: zDataMeanSubtracted,
+      smoothedX: filteredX,
+      smoothedY: filteredY,
+      smoothedZ: filteredZ,
+      normalizedX: xMeanSubtracted,
+      normalizedY: yMeanSubtracted,
+      normalizedZ: zMeanSubtracted,
       pca: normalizedPC1,
-      peaks: peaks,
+      peaks: detectedPeaks,
       label: finalLabel,
     };
-    setEmailData(emailData);
+    setEmailData(emailPayload);
   };
 
   return {

@@ -12,7 +12,6 @@ export interface ColorsType {
   textSecondary: string;
   darkBackdrop: string;
   shadow: string;
-  // Weitere Farbtypen hinzufügen
 }
 
 const Colors: ColorsType = {
@@ -29,7 +28,6 @@ const Colors: ColorsType = {
   purple: '#5b3e69',
   darkBackdrop: '#132224',
   shadow: '#000',
-  // Weitere Farben hinzufügen
 };
 
 export default Colors;

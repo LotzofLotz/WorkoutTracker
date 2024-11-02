@@ -24,7 +24,7 @@ interface ExerciseStats {
 }
 
 const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
-  // Gruppiere die Sets nach Übung und berechne die Gesamtwiederholungen
+  // Group sets by exercise and calculate total repetitions
   const calculateTotalReps = (sets: WorkoutSet[]): ExerciseStats[] => {
     const statsMap: {[key: string]: number} = {};
 
@@ -36,18 +36,16 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
       }
     });
 
-    // Wandelt das Objekt in ein Array um
-    const statsArray: ExerciseStats[] = Object.keys(statsMap).map(key => ({
+    // Convert object to array
+    return Object.keys(statsMap).map(key => ({
       label: key,
       totalReps: statsMap[key],
     }));
-
-    return statsArray;
   };
 
   const totalRepsPerExercise = calculateTotalReps(sets);
 
-  // Farb-Mapping für spezifische Übungen
+  // Color mapping for specific exercises
   const exerciseColors: {[key: string]: string} = {
     Squat: Colors.teal,
     PushUp: Colors.purple,
@@ -55,12 +53,10 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
     SitUp: Colors.secondary,
   };
 
-  // Hilfsfunktion, um Farben zuzuweisen
-  const getColor = (label: string) => {
-    return exerciseColors[label] || '#34495e'; // Fallback-Farbe (dunkelgrau)
-  };
+  // Assign colors
+  const getColor = (label: string) => exerciseColors[label] || '#34495e';
 
-  // Daten für den PieChart vorbereiten
+  // Prepare data for PieChart
   const pieChartData = totalRepsPerExercise.map(exercise => ({
     name: exercise.label,
     population: exercise.totalReps,
@@ -80,22 +76,18 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
       animationOut="slideOutDown"
       backdropColor={Colors.darkBackdrop}
       backdropOpacity={0.5}
-      useNativeDriver={true}
-      hideModalContentWhileAnimating={true}
-      avoidKeyboard={true}
-      propagateSwipe={true}>
+      useNativeDriver
+      hideModalContentWhileAnimating
+      avoidKeyboard
+      propagateSwipe>
       <View style={styles.modalContent}>
-        {/* Modal Header */}
         <ModalHeader title="Stats" onClose={onClose} />
 
-        {/* Inhalt des Modals */}
         <ScrollView contentContainerStyle={styles.modalBody}>
-          {/* Liste der Übungen mit Gesamtwiederholungen */}
           {totalRepsPerExercise.length > 0 ? (
             totalRepsPerExercise.map((exercise, index) => (
               <View key={index} style={styles.exerciseItem}>
                 <Text style={styles.exerciseLabel}>{exercise.label}</Text>
-
                 <View style={styles.exerciseStatsContainer}>
                   <Text style={styles.highlightedReps}>
                     {exercise.totalReps} Reps
@@ -107,7 +99,6 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
             <Text style={styles.noDataText}>No data recorded</Text>
           )}
 
-          {/* PieChart */}
           <PieChart
             data={pieChartData}
             width={Dimensions.get('window').width * 0.8}
@@ -144,7 +135,7 @@ const styles = StyleSheet.create({
   },
   exerciseLabel: {
     color: Colors.textPrimary,
-    fontSize: 18, // Größere Schriftgröße
+    fontSize: 18,
     fontWeight: 'bold',
   },
   exerciseStatsContainer: {
@@ -153,12 +144,12 @@ const styles = StyleSheet.create({
   },
   highlightedReps: {
     color: Colors.textSecondary,
-    fontSize: 18, // Größere Schriftgröße für Hervorhebung
+    fontSize: 18,
     fontWeight: 'bold',
     marginRight: 5,
   },
   modal: {
-    justifyContent: 'flex-end', // Modal am unteren Rand anzeigen
+    justifyContent: 'flex-end',
     margin: 0,
   },
   modalBody: {
@@ -171,8 +162,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     maxHeight: '80%',
     paddingBottom: 20,
-    // paddingHorizontal: 20,
-    // paddingTop: 20,
     width: '100%',
   },
   noDataText: {

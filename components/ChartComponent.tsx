@@ -7,32 +7,22 @@ import Colors from './colors';
 // Bestimme die Bildschirmbreite
 const screenWidth = Dimensions.get('window').width;
 
-// Definiere die Props für die Komponente
 interface ChartComponentProps {
   peaks: number[];
   chartData: number[];
 }
 
-// Definiere das ChartConfig-Objekt ohne Typimport
 const chartConfig = {
   backgroundGradientFrom: '#fff',
   backgroundGradientTo: '#fff',
-  color: (opacity = 1) => `rgba(0, 48, 73, ${opacity})`, // Colors.primary
-  fillShadowGradient: Colors.secondary, // Für den Bereich unter der Linie
+  color: (opacity = 1) => `rgba(0, 48, 73, ${opacity})`,
+  fillShadowGradient: Colors.secondary,
   fillShadowGradientOpacity: 0.6,
-  strokeWidth: 2, // Standard Linienbreite
-  decimalPlaces: 1, // Anzahl der Dezimalstellen
+  strokeWidth: 2,
+  decimalPlaces: 1,
   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-  // style: {
-  //   borderRadius: 16,
-  // },
-  // propsForDots: {
-  //   r: '2', // Größe der Punkte ändern
-  //   strokeWidth: '4',
-  //   stroke: '#ffa726',
-  // },
   propsForBackgroundLines: {
-    strokeDasharray: '', // Entfernt gestrichelte Linien
+    strokeDasharray: '',
   },
 };
 
@@ -42,7 +32,6 @@ interface CustomDecoratorProps {
 }
 
 const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
-  // Generiere X-Achsen-Labels dynamisch
   const generateXLabels = (length: number): string[] => {
     const labels: string[] = [];
     for (let i = 0; i < length; i++) {
@@ -55,13 +44,11 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
     return labels;
   };
 
-  // Definiere den CustomDecorator mit Typen
   const CustomDecorator: React.FC<CustomDecoratorProps> = ({width, height}) => {
-    const yAxisOffset = 64; // Offset für die y-Achse
+    const yAxisOffset = 64;
 
     return (
       <Svg style={styles.svg}>
-        {/* Vertikale Linien für Peaks */}
         {peaks.map(peakIndex => {
           const x = (peakIndex / chartData.length) * (width - yAxisOffset);
           return (
@@ -71,9 +58,9 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
               y1={10}
               x2={x + yAxisOffset}
               y2={height - 38}
-              stroke={Colors.red} // Verwendung von Colors.red für die Peaks
+              stroke={Colors.red}
               strokeWidth="2"
-              strokeDasharray="4 2" // Erzeugt eine gestrichelte Linie
+              strokeDasharray="4 2"
             />
           );
         })}
@@ -81,7 +68,6 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
     );
   };
 
-  // Zeige einen Ladeindikator, wenn keine Daten vorhanden sind
   if (chartData.length === 0 && peaks.length === 0) {
     return (
       <View style={styles.loaderContainer}>
@@ -126,7 +112,6 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
   );
 };
 
-// Definiere die Styles
 const styles = StyleSheet.create({
   chartStyle: {
     borderRadius: 16,
@@ -134,7 +119,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 0,
-    // flex: 1,
+
     width: '100%',
   },
   loaderContainer: {
@@ -146,7 +131,6 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     top: 0,
-    // zIndex: 1, // Optional: kann je nach Bedarf hinzugefügt werden
   },
 });
 

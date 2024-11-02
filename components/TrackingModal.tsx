@@ -44,26 +44,27 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   const [isLabelModalVisible, setIsLabelModalVisible] =
     useState<boolean>(false);
 
-  // Aktualisiere adjustedReps und das ausgewählte Label, wenn predReps oder predLabel sich ändern
+  // Update adjustedReps and selectedLabel when predReps or predLabel change
   useEffect(() => {
     setAdjustedReps(predReps);
     setSelectedLabel(predLabel);
   }, [predReps, predLabel]);
 
-  // Funktionen zum Anpassen der Reps
+  // Increment reps count
   const incrementReps = () => {
     setAdjustedReps(prev => prev + 1);
   };
 
+  // Decrement reps count
   const decrementReps = () => {
     setAdjustedReps(prev => (prev > 0 ? prev - 1 : 0));
   };
 
+  // Save adjustments and close modal
   const handleSave = () => {
     onSaveAndClose(adjustedReps, selectedLabel);
   };
 
-  // Liste der verfügbaren Labels
   const availableLabels = ['Squat', 'PushUp', 'PullUp', 'SitUp'];
 
   return (
@@ -76,14 +77,12 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
       animationOut="slideOutDown"
       backdropColor="#132224"
       backdropOpacity={0.5}
-      useNativeDriver={true}
-      hideModalContentWhileAnimating={true}
-      avoidKeyboard={true}>
+      useNativeDriver
+      hideModalContentWhileAnimating
+      avoidKeyboard>
       <View style={styles.modalContent}>
-        {/* Modal Header */}
         <ModalHeader title="Result" onClose={onClose} />
 
-        {/* Inhalt des Modals */}
         <ScrollView contentContainerStyle={styles.modalBody}>
           <View style={styles.resultsContainer}>
             <View style={styles.chartContainer}>
@@ -96,7 +95,6 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
               </Text>
             ))}
 
-            {/* Benutzerdefiniertes Label mit Modal */}
             <View style={styles.labelContainer}>
               <TouchableOpacity
                 style={styles.dropdownButton}
@@ -107,7 +105,6 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Label Auswahl Modal */}
             <Modal
               isVisible={isLabelModalVisible}
               onBackdropPress={() => setIsLabelModalVisible(false)}
@@ -117,9 +114,9 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
               animationOut="zoomOut"
               backdropColor="#000000"
               backdropOpacity={0.5}
-              useNativeDriver={true}
-              hideModalContentWhileAnimating={true}
-              avoidKeyboard={true}>
+              useNativeDriver
+              hideModalContentWhileAnimating
+              avoidKeyboard>
               <View style={styles.labelModalContent}>
                 {availableLabels.map(label => (
                   <TouchableOpacity
@@ -135,7 +132,6 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
               </View>
             </Modal>
 
-            {/* Bereich zum Anpassen der Reps */}
             <View style={styles.repsAdjustContainer}>
               <Text style={styles.repsLabel}>REPS:</Text>
               <View style={styles.adjustButtons}>
@@ -170,7 +166,7 @@ const {width} = Dimensions.get('window');
 const styles = StyleSheet.create({
   adjustButton: {
     alignItems: 'center',
-    backgroundColor: Colors.primary, // Dunkelblau aus Colors.primary
+    backgroundColor: Colors.primary,
     borderRadius: 5,
     height: 80,
     justifyContent: 'center',
@@ -178,7 +174,7 @@ const styles = StyleSheet.create({
     width: 80,
   },
   adjustButtonText: {
-    color: Colors.background, // Weißer Text aus Colors.background
+    color: Colors.background,
     fontSize: 44,
     fontWeight: 'bold',
   },
@@ -186,10 +182,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
   },
-
   adjustedReps: {
-    color: Colors.textSecondary, // Weißer Text aus Colors.textSecondary
-    fontSize: 58, // Groß
+    color: Colors.textSecondary,
+    fontSize: 58,
     fontWeight: 'bold',
     marginHorizontal: 20,
     minWidth: 50,
@@ -201,19 +196,17 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   dropdownButton: {
-    backgroundColor: Colors.primary,
-    height: 100,
-
-    width: 300, // Feste Breite von 300 Pixeln
-    // Dunkelblau aus Colors.primary
-    borderRadius: 12, // Mehr abgerundet
-    justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    height: 100,
+    justifyContent: 'center',
     paddingHorizontal: 15,
+    width: 300,
   },
   dropdownButtonText: {
-    color: Colors.background, // Weißer Text
-    fontSize: 40, // Groß
+    color: Colors.background,
+    fontSize: 40,
     fontWeight: 'bold',
     textAlign: 'center',
   },
@@ -227,26 +220,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   labelModalContent: {
-    width: width * 0.8, // 80% der Bildschirmbreite
-    backgroundColor: Colors.primary, // Dunkelblau aus Colors.primary
+    backgroundColor: Colors.primary,
     borderRadius: 20,
-    paddingVertical: 20,
     paddingHorizontal: 10,
+    paddingVertical: 20,
+    width: width * 0.8,
   },
   labelOption: {
     alignItems: 'center',
     paddingVertical: 15,
   },
   labelOptionText: {
-    color: Colors.background, // Weißer Text
-    fontSize: 40, // Groß
+    color: Colors.background,
+    fontSize: 40,
     fontWeight: 'bold',
-  },
-  labelText: {
-    color: Colors.background, // Weißer Text aus Colors.textSecondary
-    fontSize: 40, // Groß
-    marginRight: 10,
-    textAlign: 'center',
   },
   modal: {
     justifyContent: 'flex-end',
@@ -258,14 +245,14 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     alignItems: 'center',
-    backgroundColor: Colors.background, // Hintergrundfarbe aus Colors.background
+    backgroundColor: Colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 20,
     width: '100%',
   },
   predictionText: {
-    color: Colors.textSecondary, // Weißer Text aus Colors.textSecondary
+    color: Colors.textSecondary,
     fontSize: 16,
     marginTop: 5,
     textAlign: 'center',
@@ -275,7 +262,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   repsLabel: {
-    color: Colors.textSecondary, // Weißer Text aus Colors.textSecondary
+    color: Colors.textSecondary,
     fontSize: 24,
     marginRight: 10,
   },
@@ -287,13 +274,13 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     alignItems: 'center',
-    backgroundColor: Colors.secondary, // Ersetzt Farbliteral
+    backgroundColor: Colors.secondary,
     borderRadius: 25,
     elevation: 5,
     height: 80,
     justifyContent: 'center',
-    shadowColor: Colors.textSecondary, // Weißer Schatten
-    shadowOffset: {width: 0, height: 2},
+    shadowColor: Colors.textSecondary,
+    shadowOffset: {height: 2, width: 0},
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     width: 200,
@@ -303,44 +290,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   saveButtonText: {
-    color: Colors.background, // Weißer Text aus Colors.background
-    fontSize: 34, // Groß
+    color: Colors.background,
+    fontSize: 34,
     fontWeight: 'bold',
-  },
-  workoutDate: {
-    color: Colors.textPrimary,
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  workoutHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  workoutHeaderContent: {
-    flexDirection: 'column',
-  },
-  workoutItem: {
-    alignItems: 'center',
-    backgroundColor: Colors.cardBackground,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    borderWidth: 1,
-    elevation: 3,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-    padding: 20,
-    shadowColor: Colors.shadow,
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  workoutReps: {
-    color: Colors.textSecondary,
-    fontSize: 16,
-    fontWeight: '500',
   },
 });
 

@@ -40,8 +40,8 @@ const App = (): React.JSX.Element => {
   const [countdown, setCountdown] = useState<number | string | null>(null);
   const [trackingStartTime, setTrackingStartTime] = useState<number | null>(
     null,
-  ); // Neue State-Variable
-  const [canStop, setCanStop] = useState(false); // Neue State-Variable
+  );
+  const [canStop, setCanStop] = useState(false);
   const backgroundOpacity = useRef(new Animated.Value(0)).current;
 
   const {model} = useModel();
@@ -53,15 +53,15 @@ const App = (): React.JSX.Element => {
     predLabel,
     peaks,
     chartData,
-    quality,
-    jerk,
+    // quality,
+    // jerk,
     predictions,
   } = usePrediction({model, recordedData});
 
   const translateY = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
 
-  // Funktion zum Laden der Sets beim Start
+  // Load workout sets on mount
   const loadSets = async () => {
     try {
       const fetchedSets = await getWorkoutSets();
@@ -70,6 +70,7 @@ const App = (): React.JSX.Element => {
       console.error('Error loading sets:', error);
     }
   };
+
   useEffect(() => {
     Sound.setCategory('Playback', true);
 
@@ -90,37 +91,31 @@ const App = (): React.JSX.Element => {
     loadSets();
   }, [showResultsModal]);
 
-  // Countdown Effekt ohne Anzeige von 0
+  // Countdown effect without showing 0
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isCountingDown && countdown !== null) {
       if (typeof countdown === 'number' && countdown > 1) {
-        // Countdown läuft: 3, 2, 1
         timer = setTimeout(() => {
           setCountdown(countdown - 1);
         }, 1000);
       } else if (countdown === 1) {
-        // Countdown erreicht 1, nächsten Tick wird "GO"
         timer = setTimeout(() => {
           setCountdown('GO');
-          // Optional: Spiel einen Sound ab oder gib visuelles Feedback
         }, 1000);
       } else if (countdown === 'GO') {
-        // Zeige "GO" für eine Sekunde, dann starte das Tracking
         timer = setTimeout(() => {
           setCountdown(null);
           setIsCountingDown(false);
           setIsTracking(true);
           setTrackingStartTime(Date.now());
-          // Setze einen Timer, um das Stoppen nach 3 Sekunden zu erlauben
           setTimeout(() => {
             setCanStop(true);
           }, 3000);
-          // Optional: Zeige eine Toast-Nachricht für "GO"
           Toast.show({
             type: 'success',
             text1: 'GO',
-            text2: 'Tracking gestartet!',
+            text2: 'Tracking started!',
           });
         }, 1000);
       }
@@ -130,7 +125,7 @@ const App = (): React.JSX.Element => {
     };
   }, [isCountingDown, countdown]);
 
-  // Definition von animateButtonBack mit useCallback
+  // Animate button back to original state
   const animateButtonBack = useCallback(
     (callback?: () => void) => {
       if (isAnimating) return;
@@ -165,16 +160,13 @@ const App = (): React.JSX.Element => {
     [isAnimating, backgroundOpacity, scale, translateY],
   );
 
-  // Hinzufügen von animateButtonBack zu useEffect-Abhängigkeiten
+  // Handle back button press
   useEffect(() => {
     const backAction = () => {
       if (isButtonEnlarged || isAnimating) {
-        // Rücksetz-Animation ausführen
         animateButtonBack();
-        // Standardverhalten des Back-Buttons verhindern
         return true;
       }
-      // Standardverhalten zulassen (z.B. App schließen)
       return false;
     };
 
@@ -183,10 +175,10 @@ const App = (): React.JSX.Element => {
       backAction,
     );
 
-    // Bereinige den Event Listener beim Unmount
     return () => backHandler.remove();
   }, [isButtonEnlarged, isAnimating, animateButtonBack]);
 
+  // Animate the button to enlarge
   const animateButton = () => {
     if (isAnimating) return;
     setIsAnimating(true);
@@ -218,57 +210,47 @@ const App = (): React.JSX.Element => {
     });
   };
 
+  // Handle start/stop button press
   const handleStartStop = () => {
-    console.log('Button pressed, isTracking:', isTracking);
     if (isTracking) {
       if (canStop) {
-        // Stoppe das Tracking
-        console.log('Stopping tracking...');
         setIsTracking(false);
         setTrackingStartTime(null);
         setCanStop(false);
-        // Starte die Vorhersage
         predictLabel()
           .then(() => {
-            // Animate back and show results modal
             animateButtonBack(() => setShowResultsModal(true));
           })
           .catch(error => {
             console.error('Error during prediction:', error);
           });
       } else {
-        // Kann das Tracking noch nicht stoppen
         const remainingTime = Math.ceil(
           (3000 - (Date.now() - (trackingStartTime || 0))) / 1000,
         );
         Toast.show({
           type: 'info',
-          text1: 'Bitte warte',
-          text2: `Warte noch ${remainingTime} Sekunden, bevor du das Tracking stoppst.`,
+          text1: 'Please wait',
+          text2: `Wait another ${remainingTime} seconds before stopping tracking.`,
         });
       }
     } else if (!isCountingDown) {
-      // Starte den Countdown und das Tracking
-      console.log('Starting countdown and tracking...');
       setIsCountingDown(true);
-      setCountdown(3); // Startwert für das Countdown
-      // Spiele den Countdown-Sound ab
+      setCountdown(3);
       countdownSound?.play(success => {
         if (!success) {
           console.log('Sound playback failed');
         }
       });
-      // Animieren des Buttons
       animateButton();
     }
   };
 
-  // Funktion zum Hinzufügen eines neuen Sets
+  // Add a new workout set
   const addSet = async (newSet: WorkoutSet) => {
     try {
       await saveWorkoutSet(newSet);
-      setSets(prevSets => [...prevSets, newSet]); // Aktualisiere den State
-      console.log('SET ADDED');
+      setSets(prevSets => [...prevSets, newSet]);
       Toast.show({
         type: 'success',
         text1: 'Congratulations!',
@@ -284,12 +266,12 @@ const App = (): React.JSX.Element => {
     }
   };
 
-  // Callback-Funktion, die von TrackingModal aufgerufen wird, um ein neues Set hinzuzufügen
+  // Save and close handler from TrackingModal
   const handleSaveAndClose = (adjustedReps: number, selectedLabel: string) => {
     const newSet: WorkoutSet = {
       timestamp: new Date().toISOString(),
-      label: selectedLabel, // Verwende das ausgewählte Label
-      repetitions: adjustedReps, // Verwende die angepasste Reps-Zahl
+      label: selectedLabel,
+      repetitions: adjustedReps,
     };
     addSet(newSet);
     setShowResultsModal(false);
@@ -315,19 +297,17 @@ const App = (): React.JSX.Element => {
             opacity: backgroundOpacity,
           },
         ]}>
-        {isButtonEnlarged || isAnimating ? (
+        {(isButtonEnlarged || isAnimating) && (
           <TouchableOpacity
             style={styles.fullScreenTouchable}
-            onPress={() => {
-              handleStartStop();
-            }}
-            activeOpacity={1}></TouchableOpacity>
-        ) : null}
+            onPress={handleStartStop}
+            activeOpacity={1}
+          />
+        )}
       </Animated.View>
 
       {/* Main Content */}
       <View style={styles.mainContent}>
-        {/* Modals and other main components */}
         <TrackingModal
           isVisible={showResultsModal}
           onClose={() => setShowResultsModal(false)}
@@ -349,7 +329,6 @@ const App = (): React.JSX.Element => {
           sets={sets}
         />
 
-        {/* Display of saved sets */}
         <SavedSetsComponent sets={sets} />
       </View>
 
@@ -378,7 +357,7 @@ const App = (): React.JSX.Element => {
       <Animated.View
         style={[
           styles.addButton,
-          styles.addButtonAnimated, // Zugefügter Style für zIndex
+          styles.addButtonAnimated,
           {
             transform: [{translateY: translateY}, {scale: scale}],
           },
@@ -428,15 +407,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     left: Dimensions.get('window').width / 2 - 55,
     position: 'absolute',
-    shadowColor: Colors.textSecondary, // Replaced '#000' with Colors.textSecondary
+    shadowColor: Colors.textSecondary,
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
     shadowRadius: 4,
     width: 110,
-    zIndex: 2, // Initial zIndex
+    zIndex: 2,
   },
   addButtonAnimated: {
-    zIndex: 4, // Moved from inline style to StyleSheet
+    zIndex: 4,
   },
   addButtonTouchable: {
     alignItems: 'center',
@@ -445,7 +424,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   backgroundOverlay: {
-    backgroundColor: Colors.textSecondary, // Replaced 'black' with Colors.textSecondary
+    backgroundColor: Colors.textSecondary,
     bottom: 0,
     elevation: 2,
     left: 0,
@@ -455,12 +434,12 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   buttonText: {
-    color: Colors.background, // Replaced 'white' with Colors.background
+    color: Colors.background,
     fontSize: 38,
     fontWeight: 'bold',
   },
   container: {
-    backgroundColor: Colors.background, // Replaced '#fff' with Colors.background
+    backgroundColor: Colors.background,
     flex: 1,
     position: 'relative',
   },
@@ -485,7 +464,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 50,
     position: 'absolute',
     right: 0,
-    shadowColor: Colors.textSecondary, // Replaced '#000' with Colors.textSecondary
+    shadowColor: Colors.textSecondary,
     shadowOffset: {width: 0, height: -2},
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -495,7 +474,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   navButtonText: {
-    color: Colors.background, // Replaced '#fff' with Colors.background
+    color: Colors.background,
     fontSize: 12,
     marginTop: 4,
   },

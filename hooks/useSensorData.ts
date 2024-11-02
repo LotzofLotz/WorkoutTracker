@@ -26,7 +26,7 @@ const useSensorData = (isTracking: boolean) => {
     gyroZ: [],
   });
 
-  // Funktion zum Zurücksetzen der aufgezeichneten Daten
+  // Reset the recorded sensor data
   const resetRecordedData = () => {
     setRecordedData({
       accX: [],
@@ -43,11 +43,11 @@ const useSensorData = (isTracking: boolean) => {
     let gyroscopeSubscription: Subscription | null = null;
 
     if (isTracking) {
-      // Setze Aktualisierungsintervall für Sensoren auf 100ms
+      // Set sensor update intervals to 100ms
       setUpdateIntervalForType(SensorTypes.accelerometer, 100);
       setUpdateIntervalForType(SensorTypes.gyroscope, 100);
 
-      // Abonnieren der Accelerometer-Daten
+      // Subscribe to accelerometer data
       accelerometerSubscription = accelerometer
         .pipe(map(({x, y, z}) => ({x, y, z})))
         .subscribe(
@@ -62,7 +62,7 @@ const useSensorData = (isTracking: boolean) => {
           error => console.log('Accelerometer not available:', error),
         );
 
-      // Abonnieren der Gyroskop-Daten
+      // Subscribe to gyroscope data
       gyroscopeSubscription = gyroscope
         .pipe(map(({x, y, z}) => ({x, y, z})))
         .subscribe(
@@ -77,11 +77,11 @@ const useSensorData = (isTracking: boolean) => {
           error => console.log('Gyroscope not available:', error),
         );
     } else {
-      // Wenn das Tracking stoppt, setzen wir die Daten zurück
+      // Reset data when tracking stops
       resetRecordedData();
     }
 
-    // Bereinigen der Abonnements bei Komponentenentfernung oder Statusänderung
+    // Unsubscribe from sensors on cleanup
     return () => {
       if (accelerometerSubscription) {
         accelerometerSubscription.unsubscribe();
