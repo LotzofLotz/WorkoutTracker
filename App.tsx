@@ -285,10 +285,10 @@ const App = (): React.JSX.Element => {
   };
 
   // Callback-Funktion, die von TrackingModal aufgerufen wird, um ein neues Set hinzuzufügen
-  const handleSaveAndClose = (adjustedReps: number) => {
+  const handleSaveAndClose = (adjustedReps: number, selectedLabel: string) => {
     const newSet: WorkoutSet = {
       timestamp: new Date().toISOString(),
-      label: predLabel,
+      label: selectedLabel, // Verwende das ausgewählte Label
       repetitions: adjustedReps, // Verwende die angepasste Reps-Zahl
     };
     addSet(newSet);
@@ -336,8 +336,6 @@ const App = (): React.JSX.Element => {
           chartData={chartData}
           peaks={peaks}
           predictions={predictions}
-          quality={quality}
-          jerk={jerk}
           onSaveAndClose={handleSaveAndClose}
         />
         <ProgressModal

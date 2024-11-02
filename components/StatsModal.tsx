@@ -91,17 +91,21 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
         {/* Inhalt des Modals */}
         <ScrollView contentContainerStyle={styles.modalBody}>
           {/* Liste der Übungen mit Gesamtwiederholungen */}
-          {totalRepsPerExercise.map((exercise, index) => (
-            <View key={index} style={styles.exerciseItem}>
-              <Text style={styles.exerciseLabel}>{exercise.label}</Text>
+          {totalRepsPerExercise.length > 0 ? (
+            totalRepsPerExercise.map((exercise, index) => (
+              <View key={index} style={styles.exerciseItem}>
+                <Text style={styles.exerciseLabel}>{exercise.label}</Text>
 
-              <View style={styles.exerciseStatsContainer}>
-                <Text style={styles.highlightedReps}>
-                  {exercise.totalReps} Reps
-                </Text>
+                <View style={styles.exerciseStatsContainer}>
+                  <Text style={styles.highlightedReps}>
+                    {exercise.totalReps} Reps
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))}
+            ))
+          ) : (
+            <Text style={styles.noDataText}>No data recorded</Text>
+          )}
 
           {/* PieChart */}
           <PieChart
@@ -170,6 +174,10 @@ const styles = StyleSheet.create({
     // paddingHorizontal: 20,
     // paddingTop: 20,
     width: '100%',
+  },
+  noDataText: {
+    color: Colors.textPrimary,
+    fontSize: 18,
   },
   pieChart: {
     marginVertical: 10,

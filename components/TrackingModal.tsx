@@ -6,10 +6,10 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import Modal from 'react-native-modal';
 import ChartComponent from './ChartComponent';
-
 import ModalHeader from './ModalHeader';
 import Colors from './colors';
 
@@ -26,9 +26,7 @@ interface TrackingModalProps {
   chartData: number[];
   peaks: number[];
   predictions: Prediction[];
-  // quality: number; // Auskommentiert
-  // jerk: number;    // Auskommentiert
-  onSaveAndClose: (adjustedReps: number) => void;
+  onSaveAndClose: (adjustedReps: number, selectedLabel: string) => void;
 }
 
 const TrackingModal: React.FC<TrackingModalProps> = ({
@@ -39,38 +37,18 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   chartData,
   peaks,
   predictions,
-  // quality,
-  // jerk,
   onSaveAndClose,
 }) => {
-  // Entfernt ungenutzte Variablen
-  // const [showButton, setShowButton] = useState<boolean>(true);
-  // const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
-  const [adjustedReps, setAdjustedReps] = useState<number>(predReps); // Neuer Zustand
+  const [adjustedReps, setAdjustedReps] = useState<number>(predReps);
+  const [selectedLabel, setSelectedLabel] = useState<string>(predLabel);
+  const [isLabelModalVisible, setIsLabelModalVisible] =
+    useState<boolean>(false);
 
-  // Entfernt ungenutzte Variable
-  // const screenHeight = Dimensions.get('window').height;
-
-  // useEffect(() => {
-  //   Sound.setCategory('Playback');
-
-  //   const sound = new Sound('sui_countdown.mp3', Sound.MAIN_BUNDLE, error => {
-  //     if (error) {
-  //       console.log('Failed to load the sound', error);
-  //       return;
-  //     }
-  //     // setCountdownSound(sound); // Entfernt, da countdownSound nicht verwendet wird
-  //   });
-
-  //   return () => {
-  //     sound.release();
-  //   };
-  // }, []);
-
-  // Aktualisiere adjustedReps, wenn predReps sich ändert
+  // Aktualisiere adjustedReps und das ausgewählte Label, wenn predReps oder predLabel sich ändern
   useEffect(() => {
     setAdjustedReps(predReps);
-  }, [predReps]);
+    setSelectedLabel(predLabel);
+  }, [predReps, predLabel]);
 
   // Funktionen zum Anpassen der Reps
   const incrementReps = () => {
@@ -82,8 +60,11 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   };
 
   const handleSave = () => {
-    onSaveAndClose(adjustedReps); // Übergib die angepasste Reps-Zahl
+    onSaveAndClose(adjustedReps, selectedLabel);
   };
+
+  // Liste der verfügbaren Labels
+  const availableLabels = ['Squat', 'PushUp', 'PullUp', 'SitUp'];
 
   return (
     <Modal
@@ -110,23 +91,49 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
             </View>
             {predictions.map((prediction, index) => (
               <Text style={styles.predictionText} key={index}>
-                {index + 1}. Rep: {prediction.label} {' ('}
-                {(prediction.probability * 100).toFixed(2)}%{')'}
+                {index + 1}. Rep: {prediction.label} (
+                {(prediction.probability * 100).toFixed(2)}%)
               </Text>
             ))}
 
-            {/* Auskommentierte Texte */}
-            {/* 
-            <Text style={styles.metricText}>
-              Quality Correlation: {quality.toFixed(2)}
-            </Text>
-            <Text style={styles.metricText}>
-              Quality Jerk: {jerk.toFixed(2)}
-            </Text>
-            */}
+            {/* Benutzerdefiniertes Label mit Modal */}
+            <View style={styles.labelContainer}>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setIsLabelModalVisible(true)}>
+                <Text style={styles.dropdownButtonText}>
+                  {selectedLabel || 'Select Label'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-            <Text style={styles.labelText}>LABEL: </Text>
-            <Text style={styles.predLabelText}> {predLabel}</Text>
+            {/* Label Auswahl Modal */}
+            <Modal
+              isVisible={isLabelModalVisible}
+              onBackdropPress={() => setIsLabelModalVisible(false)}
+              onBackButtonPress={() => setIsLabelModalVisible(false)}
+              style={styles.labelModal}
+              animationIn="zoomIn"
+              animationOut="zoomOut"
+              backdropColor="#000000"
+              backdropOpacity={0.5}
+              useNativeDriver={true}
+              hideModalContentWhileAnimating={true}
+              avoidKeyboard={true}>
+              <View style={styles.labelModalContent}>
+                {availableLabels.map(label => (
+                  <TouchableOpacity
+                    key={label}
+                    style={styles.labelOption}
+                    onPress={() => {
+                      setSelectedLabel(label);
+                      setIsLabelModalVisible(false);
+                    }}>
+                    <Text style={styles.labelOptionText}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </Modal>
 
             {/* Bereich zum Anpassen der Reps */}
             <View style={styles.repsAdjustContainer}>
@@ -158,10 +165,12 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   );
 };
 
+const {width} = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   adjustButton: {
     alignItems: 'center',
-    backgroundColor: Colors.primary, // Ersetzt Farbliteral
+    backgroundColor: Colors.primary, // Dunkelblau aus Colors.primary
     borderRadius: 5,
     height: 80,
     justifyContent: 'center',
@@ -169,7 +178,7 @@ const styles = StyleSheet.create({
     width: 80,
   },
   adjustButtonText: {
-    color: Colors.background, // Ersetzt 'white' mit Colors.background
+    color: Colors.background, // Weißer Text aus Colors.background
     fontSize: 44,
     fontWeight: 'bold',
   },
@@ -179,38 +188,66 @@ const styles = StyleSheet.create({
   },
 
   adjustedReps: {
-    color: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
-    fontSize: 44,
+    color: Colors.textSecondary, // Weißer Text aus Colors.textSecondary
+    fontSize: 58, // Groß
     fontWeight: 'bold',
     marginHorizontal: 20,
     minWidth: 50,
     textAlign: 'center',
   },
-  // Entfernt ungenutzte buttonText
-  // buttonText: {
-  //   color: 'white',
-  //   fontSize: 54,
-  //   fontWeight: 'bold',
-  // },
   chartContainer: {
     alignItems: 'center',
     marginBottom: 20,
     width: '100%',
   },
-  labelText: {
-    color: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
-    fontSize: 24,
-    marginTop: 15,
-    textAlign: 'center',
-    // fontWeight: 'bold',
+  dropdownButton: {
+    backgroundColor: Colors.primary,
+    height: 100,
+
+    width: 300, // Feste Breite von 300 Pixeln
+    // Dunkelblau aus Colors.primary
+    borderRadius: 12, // Mehr abgerundet
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 15,
   },
-  // Entfernt ungenutzte metricText
-  // metricText: {
-  //   color: 'black',
-  //   fontSize: 18,
-  //   marginTop: 10,
-  //   textAlign: 'center',
-  // },
+  dropdownButtonText: {
+    color: Colors.background, // Weißer Text
+    fontSize: 40, // Groß
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  labelContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginTop: 20,
+  },
+  labelModal: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  labelModalContent: {
+    width: width * 0.8, // 80% der Bildschirmbreite
+    backgroundColor: Colors.primary, // Dunkelblau aus Colors.primary
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+  },
+  labelOption: {
+    alignItems: 'center',
+    paddingVertical: 15,
+  },
+  labelOptionText: {
+    color: Colors.background, // Weißer Text
+    fontSize: 40, // Groß
+    fontWeight: 'bold',
+  },
+  labelText: {
+    color: Colors.background, // Weißer Text aus Colors.textSecondary
+    fontSize: 40, // Groß
+    marginRight: 10,
+    textAlign: 'center',
+  },
   modal: {
     justifyContent: 'flex-end',
     margin: 0,
@@ -221,22 +258,14 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     alignItems: 'center',
-    backgroundColor: Colors.background, // Ersetzt 'white' mit Colors.background
+    backgroundColor: Colors.background, // Hintergrundfarbe aus Colors.background
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 20,
     width: '100%',
-    // Höhe wird dynamisch gesetzt basierend auf showButton
-  },
-  predLabelText: {
-    color: Colors.primary, // Ersetzt Colors.primary mit einer konsistenten Farbkonstanten
-    fontSize: 44,
-    fontWeight: 'bold',
-    marginTop: 10,
-    textAlign: 'center',
   },
   predictionText: {
-    color: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
+    color: Colors.textSecondary, // Weißer Text aus Colors.textSecondary
     fontSize: 16,
     marginTop: 5,
     textAlign: 'center',
@@ -246,19 +275,10 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   repsLabel: {
-    color: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
+    color: Colors.textSecondary, // Weißer Text aus Colors.textSecondary
     fontSize: 24,
-    // fontWeight: 'bold',
     marginRight: 10,
   },
-  // Entfernt ungenutzte repsText
-  // repsText: {
-  //   color: 'black',
-  //   fontSize: 24,
-  //   marginTop: 5,
-  //   textAlign: 'center',
-  //   // fontWeight: 'bold',
-  // },
   resultsContainer: {
     alignItems: 'center',
     marginTop: 10,
@@ -272,7 +292,7 @@ const styles = StyleSheet.create({
     elevation: 5,
     height: 80,
     justifyContent: 'center',
-    shadowColor: Colors.textSecondary, // Ersetzt '#000' mit Colors.textSecondary
+    shadowColor: Colors.textSecondary, // Weißer Schatten
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -283,20 +303,45 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   saveButtonText: {
-    color: Colors.background, // Ersetzt 'white' mit Colors.background
-    fontSize: 34,
+    color: Colors.background, // Weißer Text aus Colors.background
+    fontSize: 34, // Groß
     fontWeight: 'bold',
   },
-  // Entfernt ungenutzte startStopButton
-  // startStopButton: {
-  //   alignItems: 'center',
-  //   backgroundColor: '#ff4d4d',
-  //   borderRadius: 200,
-  //   height: 350,
-  //   justifyContent: 'center',
-  //   marginBottom: 20,
-  //   width: 350,
-  // },
+  workoutDate: {
+    color: Colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  workoutHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  workoutHeaderContent: {
+    flexDirection: 'column',
+  },
+  workoutItem: {
+    alignItems: 'center',
+    backgroundColor: Colors.cardBackground,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    elevation: 3,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+    padding: 20,
+    shadowColor: Colors.shadow,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  workoutReps: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });
 
 export default TrackingModal;

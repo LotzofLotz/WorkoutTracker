@@ -37,7 +37,7 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
       [date: string]: {exercises: ExerciseSummary[]; totalReps: number};
     } = {};
 
-    sets.forEach(set => {
+    sets?.forEach(set => {
       const date = new Date(set.timestamp).toISOString().split('T')[0];
 
       if (!groups[date]) {
@@ -113,7 +113,7 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
     <View style={styles.container}>
       {/* Entfernt ungenutzte title */}
       {sortedDates.length === 0 ? (
-        <Text style={styles.emptyText}>Keine Workouts gespeichert.</Text>
+        <Text style={styles.emptyText}>No Data recorded</Text>
       ) : (
         <FlatList
           data={sortedDates}
@@ -209,12 +209,12 @@ const formatDate = (dateString: string) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingVertical: 10,
     width: '100%',
   },
   dateTitle: {
-    color: Colors.textSecondary, // Ersetzt '#444' mit Colors.textSecondary
+    color: Colors.primary, // Ersetzt '#444' mit Colors.textSecondary
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   exerciseItem: {
-    borderBottomColor: Colors.border, // Ersetzt '#eee' mit Colors.border
+    borderBottomColor: Colors.secondary, // Ersetzt '#eee' mit Colors.border
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -235,12 +235,12 @@ const styles = StyleSheet.create({
   },
 
   exerciseLabel: {
-    color: Colors.textPrimary, // Ersetzt '#333' mit Colors.textPrimary
+    color: Colors.primary, // Ersetzt '#333' mit Colors.textPrimary
     fontSize: 18,
     fontWeight: 'bold',
   },
   exerciseSets: {
-    color: Colors.textSecondary, // Ersetzt '#555' mit Colors.textSecondary
+    color: Colors.primary, // Ersetzt '#555' mit Colors.textSecondary
     fontSize: 16,
   },
   exerciseStatsContainer: {
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   },
 
   highlightedReps: {
-    color: Colors.textSecondary, // Ersetzt 'black' mit Colors.textSecondary
+    color: Colors.primary, // Ersetzt 'black' mit Colors.textSecondary
     fontSize: 18, // Größere Schriftgröße für Hervorhebung
     fontWeight: 'bold',
     marginRight: 5,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   totalReps: {
-    color: Colors.textSecondary, // Ersetzt '#444' mit Colors.textSecondary
+    color: Colors.primary, // Ersetzt '#444' mit Colors.textSecondary
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -295,9 +295,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   workoutItem: {
-    borderColor: Colors.border, // Ersetzt '#ccc' mit Colors.border
+    borderColor: Colors.secondary, // Ersetzt '#ccc' mit Colors.border
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 2,
     marginBottom: 10,
     padding: 15,
   },

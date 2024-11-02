@@ -141,7 +141,7 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
         {/* LineChart für die ausgewählten Stats */}
         <View style={styles.chartContainer}>
           {sortedDates.length === 0 ? (
-            <Text style={styles.noDataText}>Keine Daten verfügbar.</Text>
+            <Text style={styles.noDataText}>No Data recorded</Text>
           ) : (
             <LineChart
               data={getChartData}
