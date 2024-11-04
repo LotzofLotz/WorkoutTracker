@@ -91,7 +91,6 @@ const App = (): React.JSX.Element => {
     loadSets();
   }, [showResultsModal]);
 
-  // Countdown effect without showing 0
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isCountingDown && countdown !== null) {
@@ -102,21 +101,13 @@ const App = (): React.JSX.Element => {
       } else if (countdown === 1) {
         timer = setTimeout(() => {
           setCountdown('GO');
-        }, 1000);
-      } else if (countdown === 'GO') {
-        timer = setTimeout(() => {
-          setCountdown(null);
+          // Starten Sie das Tracking sofort
           setIsCountingDown(false);
           setIsTracking(true);
           setTrackingStartTime(Date.now());
           setTimeout(() => {
             setCanStop(true);
           }, 3000);
-          Toast.show({
-            type: 'success',
-            text1: 'GO',
-            text2: 'Tracking started!',
-          });
         }, 1000);
       }
     }
@@ -285,7 +276,6 @@ const App = (): React.JSX.Element => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <Header title="Workout History" />
 
       {/* Background Dimming Overlay */}
@@ -388,8 +378,6 @@ const App = (): React.JSX.Element => {
           )}
         </TouchableOpacity>
       </Animated.View>
-
-      {/* Toast Messages */}
       <Toast />
     </SafeAreaView>
   );
@@ -478,9 +466,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  // pieChart: {
-  //   marginVertical: 10,
-  // },
 });
 
 export default App;

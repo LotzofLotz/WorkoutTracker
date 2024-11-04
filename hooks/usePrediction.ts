@@ -98,6 +98,7 @@ const usePrediction = ({model, recordedData}: UsePredictionProps) => {
     // Normalize PCA data
     const normalizedPC1 = normalizeToRange(firstPC);
     setChartData(normalizedPC1);
+    console.log('Normalized PC1:', normalizedPC1);
 
     // Find peaks
     const detectedPeaks =
@@ -106,6 +107,7 @@ const usePrediction = ({model, recordedData}: UsePredictionProps) => {
         : findPeaks(invertArray(normalizedPC1), 7, 0, 0);
 
     setPeaks(detectedPeaks);
+    console.log('Detected peaks:', detectedPeaks);
     setPredReps(detectedPeaks.length - 1);
 
     // Extract segments between peaks

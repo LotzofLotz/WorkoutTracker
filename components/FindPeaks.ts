@@ -179,12 +179,69 @@ function filterMaxima(
  * @param prominence - (Optional) Not implemented.
  * @returns Array of indices where peaks occur.
  */
+// export function findPeaks(
+//   data: number[],
+//   distance?: number,
+//   height?: number,
+//   prominence?: number,
+// ): number[] {
+//   const indices = findLocalMaxima(data);
+//   return filterMaxima(indices, data, distance, height, prominence);
+// }
 export function findPeaks(
   data: number[],
   distance?: number,
   height?: number,
   prominence?: number,
 ): number[] {
-  const indices = findLocalMaxima(data);
-  return filterMaxima(indices, data, distance, height, prominence);
+  let indices = findLocalMaxima(data);
+  indices = filterMaxima(indices, data, distance, height, prominence);
+
+  // Neue Bedingung hinzufügen
+  // Wenn der erste Peak-Index größer als 7 ist, prüfen wir die ersten 7 Datenpunkte
+  if (indices.length > 0 && indices[0] > 7) {
+    const numPointsToCheck = 7; // Anzahl der zu prüfenden Datenpunkte
+    let significantDifferenceFound = false;
+
+    // Prüfen, ob die Differenz zwischen zwei beliebigen Punkten größer als 1 ist
+    for (let i = 0; i < numPointsToCheck; i++) {
+      for (let j = i + 1; j < numPointsToCheck; j++) {
+        if (Math.abs(data[i] - data[j]) > 1) {
+          significantDifferenceFound = true;
+          break;
+        }
+      }
+      if (significantDifferenceFound) {
+        break;
+      }
+    }
+
+    // Wenn eine signifikante Differenz gefunden wurde, fügen wir den Index 0 hinzu
+    if (significantDifferenceFound) {
+      indices.unshift(0); // Index 0 am Anfang des Arrays einfügen
+    }
+  }
+  if (indices.length > 0 && data.length - indices[indices.length - 1] > 7) {
+    const numPointsToCheck = 7;
+    const startIdx = data.length - numPointsToCheck;
+    let significantDifferenceFound = false;
+
+    for (let i = startIdx; i < data.length; i++) {
+      for (let j = i + 1; j < data.length; j++) {
+        if (Math.abs(data[i] - data[j]) > 1) {
+          significantDifferenceFound = true;
+          break;
+        }
+      }
+      if (significantDifferenceFound) {
+        break;
+      }
+    }
+
+    if (significantDifferenceFound) {
+      indices.push(data.length - 1);
+    }
+  }
+
+  return indices;
 }

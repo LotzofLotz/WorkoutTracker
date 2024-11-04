@@ -50,6 +50,13 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
     setSelectedLabel(predLabel);
   }, [predReps, predLabel]);
 
+  useEffect(() => {
+    if (isVisible) {
+      setAdjustedReps(predReps);
+      setSelectedLabel(predLabel);
+    }
+  }, [isVisible]);
+
   // Increment reps count
   const incrementReps = () => {
     setAdjustedReps(prev => prev + 1);
