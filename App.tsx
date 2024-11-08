@@ -24,6 +24,7 @@ import StatsModal from './components/StatsModal';
 import Header from './components/Header';
 import Sound from 'react-native-sound';
 import Colors from './components/colors';
+import KeepAwake from 'react-native-keep-awake';
 
 const App = (): React.JSX.Element => {
   const [countdownSound, setCountdownSound] = useState<Sound | null>(null);
@@ -60,6 +61,18 @@ const App = (): React.JSX.Element => {
 
   const translateY = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isTracking) {
+      KeepAwake.activate();
+    } else {
+      KeepAwake.deactivate();
+    }
+
+    return () => {
+      KeepAwake.deactivate();
+    };
+  }, [isTracking]);
 
   // Load workout sets on mount
   const loadSets = async () => {
