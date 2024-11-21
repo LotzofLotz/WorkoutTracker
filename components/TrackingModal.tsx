@@ -23,6 +23,11 @@ interface TrackingModalProps {
   onClose: () => void;
   predLabel: string;
   predReps: number;
+  avgFirstPartTime: number;
+  avgSecondPartTime: number;
+  jerk: number;
+  avgRepTime: number;
+  quality: number;
   chartData: number[];
   peaks: number[];
   predictions: Prediction[];
@@ -35,7 +40,12 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   predLabel,
   predReps,
   chartData,
+  avgFirstPartTime,
+  jerk,
+  avgRepTime,
+  avgSecondPartTime,
   peaks,
+  quality,
   predictions,
   onSaveAndClose,
 }) => {
@@ -72,6 +82,105 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
     onSaveAndClose(adjustedReps, selectedLabel);
   };
 
+  const getPhaseInfo = (label: string) => {
+    if (label === 'PullUp') {
+      return {
+        firstPhaseLabel: 'Concentric Phase',
+        secondPhaseLabel: 'Eccentric Phase',
+        concentricPhase: 'first',
+        eccentricPhase: 'second',
+      };
+    } else {
+      return {
+        firstPhaseLabel: 'Eccentric Phase',
+        secondPhaseLabel: 'Concentric Phase',
+        concentricPhase: 'second',
+        eccentricPhase: 'first',
+      };
+    }
+  };
+
+  const {firstPhaseLabel, secondPhaseLabel, concentricPhase, eccentricPhase} =
+    getPhaseInfo(selectedLabel);
+
+  const getTags = () => {
+    let concentricTime, eccentricTime;
+
+    if (concentricPhase === 'first') {
+      concentricTime = avgFirstPartTime;
+      eccentricTime = avgSecondPartTime;
+    } else {
+      concentricTime = avgSecondPartTime;
+      eccentricTime = avgFirstPartTime;
+    }
+
+    const tags = [];
+
+    // Definiere die Schwellenwerte für den Jerk-Wert
+    const definedLowJerkThreshold = 1.5;
+    const definedHighJerkThreshold = 1.5;
+
+    // Primär-Tag ermitteln
+    let primaryTag = null;
+
+    // Power
+    if (
+      avgRepTime < 1.5 &&
+      jerk >= definedHighJerkThreshold &&
+      concentricTime <= 0.7
+    ) {
+      primaryTag = 'Power';
+    }
+    // Strength
+    else if (avgRepTime >= 2 && jerk < definedHighJerkThreshold) {
+      primaryTag = 'Strength';
+    }
+    // Hypertrophy
+    else {
+      primaryTag = 'Hypertrophy';
+    }
+
+    // Füge das Primär-Tag hinzu
+    if (primaryTag) {
+      tags.push(primaryTag);
+    }
+
+    // Zusätzliche Tags vergeben
+
+    // Stamina
+    if (adjustedReps > 12) {
+      tags.push('Stamina');
+    }
+
+    // Consistency
+    if (quality > 50) {
+      tags.push('Consistency');
+    }
+
+    // Explosivity
+    if (concentricTime < 1 && eccentricTime > concentricTime * 1.5) {
+      tags.push('Explosivity');
+    }
+
+    // Control
+    const phaseRatio = avgFirstPartTime / avgSecondPartTime;
+    if (
+      avgRepTime > 2 &&
+      phaseRatio >= 0.5 &&
+      phaseRatio <= 1.5 &&
+      jerk < definedLowJerkThreshold
+    ) {
+      tags.push('Control');
+    }
+
+    return {
+      primaryTag,
+      additionalTags: tags.filter(tag => tag !== primaryTag),
+    };
+  };
+
+  const {primaryTag, additionalTags} = getTags();
+
   const availableLabels = ['Squat', 'PushUp', 'PullUp', 'SitUp'];
 
   return (
@@ -95,12 +204,41 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
             <View style={styles.chartContainer}>
               <ChartComponent chartData={chartData} peaks={peaks} />
             </View>
-            {predictions.map((prediction, index) => (
-              <Text style={styles.predictionText} key={index}>
-                {index + 1}. Rep: {prediction.label} (
-                {(prediction.probability * 100).toFixed(2)}%)
-              </Text>
-            ))}
+            <Text style={styles.repsLabel}>
+              Avg Rep Time: {avgRepTime.toFixed(1)} Sekunden
+            </Text>
+            <Text style={styles.repsLabel}>
+              {firstPhaseLabel}: {avgFirstPartTime.toFixed(1)} Sekunden
+            </Text>
+            <Text style={styles.repsLabel}>
+              {secondPhaseLabel}: {avgSecondPartTime.toFixed(1)} Sekunden
+            </Text>
+            <Text style={styles.repsLabel}>Jerk: {jerk.toFixed(1)}</Text>
+            <Text style={styles.repsLabel}>consistency: {quality}</Text>
+            <View style={styles.tagsContainer}>
+              {/* Primär-Tag */}
+              <Text style={styles.tagsTitle}>Primary Tag:</Text>
+              {primaryTag ? (
+                <View style={styles.primaryTagItem}>
+                  <Text style={styles.primaryTagText}>{primaryTag}</Text>
+                </View>
+              ) : (
+                <Text style={styles.noTagsText}>No primary tag</Text>
+              )}
+              {/* Zusätzliche Tags */}
+              <Text style={styles.tagsTitle}>Additional Tags:</Text>
+              {additionalTags.length > 0 ? (
+                <View style={styles.tagsList}>
+                  {additionalTags.map((tag, index) => (
+                    <View key={index} style={styles.tagItem}>
+                      <Text style={styles.tagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.noTagsText}>No additional tags</Text>
+              )}
+            </View>
 
             <View style={styles.labelContainer}>
               <TouchableOpacity
@@ -258,11 +396,22 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     width: '100%',
   },
-  predictionText: {
+  noTagsText: {
     color: Colors.textSecondary,
-    fontSize: 16,
-    marginTop: 5,
-    textAlign: 'center',
+    fontSize: 18,
+  },
+  primaryTagItem: {
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    margin: 5,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  primaryTagText: {
+    color: Colors.background,
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   repsAdjustContainer: {
     alignItems: 'center',
@@ -270,7 +419,7 @@ const styles = StyleSheet.create({
   },
   repsLabel: {
     color: Colors.textSecondary,
-    fontSize: 24,
+    fontSize: 16,
     marginRight: 10,
   },
   resultsContainer: {
@@ -300,6 +449,33 @@ const styles = StyleSheet.create({
     color: Colors.background,
     fontSize: 34,
     fontWeight: 'bold',
+  },
+  tagItem: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    margin: 5,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+  },
+  tagText: {
+    color: Colors.background,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  tagsContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  tagsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  tagsTitle: {
+    color: Colors.textSecondary,
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
 });
 

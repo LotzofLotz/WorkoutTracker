@@ -54,8 +54,11 @@ const App = (): React.JSX.Element => {
     predLabel,
     peaks,
     chartData,
-    // quality,
-    // jerk,
+    avgFirstPartTime,
+    avgRepTime,
+    avgSecondPartTime,
+    quality,
+    jerk,
     predictions,
   } = usePrediction({model, recordedData});
 
@@ -317,7 +320,12 @@ const App = (): React.JSX.Element => {
           predLabel={predLabel}
           predReps={predReps}
           chartData={chartData}
+          avgFirstPartTime={avgFirstPartTime}
+          avgSecondPartTime={avgSecondPartTime}
+          avgRepTime={avgRepTime}
           peaks={peaks}
+          quality={quality}
+          jerk={jerk}
           predictions={predictions}
           onSaveAndClose={handleSaveAndClose}
         />
