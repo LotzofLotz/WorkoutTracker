@@ -5,6 +5,11 @@ export interface WorkoutSet {
   timestamp: string; // ISO-String
   label: string;
   repetitions: number;
+  consistencyScore: number;
+  staminaScore: number;
+  controlScore: number;
+  explosivityScore: number;
+  powerScore: number;
 }
 
 const WORKOUT_SETS_KEY = 'workout_sets';

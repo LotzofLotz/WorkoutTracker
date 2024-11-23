@@ -91,7 +91,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
           ],
         }}
         width={screenWidth - 40}
-        height={220}
+        height={200}
         yLabelsOffset={10}
         fromZero={false}
         chartConfig={chartConfig}
@@ -103,7 +103,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
         withVerticalLines={true}
         withInnerLines={true}
         segments={4}
-        xLabelsOffset={-5}
+        xLabelsOffset={-10}
         decorator={({width, height}: {width: number; height: number}) => (
           <CustomDecorator width={width} height={height} />
         )}
@@ -114,12 +114,12 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
 
 const styles = StyleSheet.create({
   chartStyle: {
-    borderRadius: 16,
-    marginVertical: 8,
+    // borderRadius: 16,
+    // marginVertical: 8,
   },
   container: {
     padding: 0,
-
+    right: 10,
     width: '100%',
   },
   loaderContainer: {
