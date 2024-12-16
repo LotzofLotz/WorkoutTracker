@@ -219,28 +219,29 @@ const App = (): React.JSX.Element => {
 
   // Handle start/stop button press
   const handleStartStop = () => {
+    console.log('clicked!!');
     if (isTracking) {
-      if (canStop) {
-        setIsTracking(false);
-        setTrackingStartTime(null);
-        setCanStop(false);
-        predictLabel()
-          .then(() => {
-            animateButtonBack(() => setShowResultsModal(true));
-          })
-          .catch(error => {
-            console.error('Error during prediction:', error);
-          });
-      } else {
-        const remainingTime = Math.ceil(
-          (3000 - (Date.now() - (trackingStartTime || 0))) / 1000,
-        );
-        Toast.show({
-          type: 'info',
-          text1: 'Please wait',
-          text2: `Wait another ${remainingTime} seconds before stopping tracking.`,
+      // if (canStop) {
+      setIsTracking(false);
+      setTrackingStartTime(null);
+      setCanStop(false);
+      predictLabel()
+        .then(() => {
+          animateButtonBack(() => setShowResultsModal(true));
+        })
+        .catch(error => {
+          console.error('Error during prediction:', error);
         });
-      }
+      // } else {
+      //   const remainingTime = Math.ceil(
+      //     (3000 - (Date.now() - (trackingStartTime || 0))) / 1000,
+      //   );
+      //   Toast.show({
+      //     type: 'info',
+      //     text1: 'Please wait',
+      //     text2: `Wait another ${remainingTime} seconds before stopping tracking.`,
+      //   });
+      // }
     } else if (!isCountingDown) {
       setIsCountingDown(true);
       setCountdown(3);
