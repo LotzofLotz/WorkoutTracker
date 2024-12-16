@@ -112,7 +112,7 @@ const StatsModal: React.FC<StatsModalProps> = ({isVisible, onClose, sets}) => {
             accessor="population"
             backgroundColor="transparent"
             paddingLeft="15"
-            absolute
+            //absolute
             style={styles.pieChart}
           />
         </ScrollView>

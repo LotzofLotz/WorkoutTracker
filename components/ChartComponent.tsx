@@ -7,9 +7,14 @@ import Colors from './colors';
 // Bestimme die Bildschirmbreite
 const screenWidth = Dimensions.get('window').width;
 
+// Maximale Anzahl von Labels auf der X-Achse
+const MAX_LABELS = 10;
+
 interface ChartComponentProps {
   peaks: number[];
   chartData: number[];
+  timePerDataPoint?: number; // in Sekunden, Standardwert 0.1
+  labelInterval?: number; // gewünschtes Label-Intervall in Sekunden, Standardwert 2
 }
 
 const chartConfig = {
@@ -19,8 +24,9 @@ const chartConfig = {
   fillShadowGradient: Colors.secondary,
   fillShadowGradientOpacity: 0.6,
   strokeWidth: 2,
-  decimalPlaces: 1,
+  decimalPlaces: 1, // Eine Dezimalstelle für die Y-Achsen-Werte
   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+  labelFontSize: 10, // Reduzierte Schriftgröße
   propsForBackgroundLines: {
     strokeDasharray: '',
   },
@@ -31,12 +37,28 @@ interface CustomDecoratorProps {
   height: number;
 }
 
-const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
+const ChartComponent: React.FC<ChartComponentProps> = ({
+  peaks,
+  chartData,
+  timePerDataPoint = 0.1,
+  labelInterval = 2,
+}) => {
+  // Berechne den Schritt basierend auf dem gewünschten Label-Intervall
+  const desiredStep = Math.ceil(labelInterval / timePerDataPoint);
+
+  // Berechne den maximalen Schritt basierend auf MAX_LABELS
+  const stepMax = Math.ceil(chartData.length / MAX_LABELS);
+
+  // Finaler Schrittwert ist der größere der beiden
+  const step = Math.max(desiredStep, stepMax);
+
+  // Generiere die X-Achsen-Labels ohne Nachkommastellen
   const generateXLabels = (length: number): string[] => {
     const labels: string[] = [];
     for (let i = 0; i < length; i++) {
-      if (i % 10 === 0) {
-        labels.push(`${i / 10}s`);
+      if (i % step === 0) {
+        const time = Math.round(i * timePerDataPoint); // Entferne Nachkommastellen
+        labels.push(`${time}s`);
       } else {
         labels.push('');
       }
@@ -45,15 +67,19 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
   };
 
   const CustomDecorator: React.FC<CustomDecoratorProps> = ({width, height}) => {
-    const yAxisOffset = 64;
+    const yAxisOffset = 64; // Anpassung basierend auf Chart-Konfiguration
 
     return (
       <Svg style={styles.svg}>
-        {peaks.map(peakIndex => {
-          const x = (peakIndex / chartData.length) * (width - yAxisOffset);
+        {peaks.map((peakIndex, idx) => {
+          const validPeakIndex = Math.min(
+            Math.max(peakIndex, 0),
+            chartData.length - 1,
+          );
+          const x = (validPeakIndex / chartData.length) * (width - yAxisOffset);
           return (
             <Line
-              key={peakIndex}
+              key={`peak-${idx}`}
               x1={x + yAxisOffset}
               y1={10}
               x2={x + yAxisOffset}
@@ -83,16 +109,16 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
           labels: generateXLabels(chartData.length),
           datasets: [
             {
-              data: chartData,
-              color: (opacity = 1) => `rgba(0, 48, 73, ${opacity})`, // Colors.primary
+              data: chartData.length > 0 ? chartData : [0],
+              color: (opacity = 1) => `rgba(0, 48, 73, ${opacity})`,
               strokeWidth: 2,
               withDots: false,
             },
           ],
         }}
-        width={screenWidth - 40}
+        width={screenWidth - 40} // Bildschirmbreite minus Padding
         height={200}
-        yLabelsOffset={10}
+        yLabelsOffset={15} // Optional: Anpassung für bessere Lesbarkeit
         fromZero={false}
         chartConfig={chartConfig}
         bezier
@@ -102,9 +128,9 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
         withHorizontalLines={true}
         withVerticalLines={true}
         withInnerLines={true}
-        segments={4}
-        xLabelsOffset={-10}
-        decorator={({width, height}: {width: number; height: number}) => (
+        segments={4} // Y-Achse in 4 Segmente unterteilen
+        formatYLabel={value => parseFloat(value).toFixed(1)} // Erzwingt 1 Dezimalstelle
+        decorator={({width, height}) => (
           <CustomDecorator width={width} height={height} />
         )}
       />
@@ -114,8 +140,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({peaks, chartData}) => {
 
 const styles = StyleSheet.create({
   chartStyle: {
-    // borderRadius: 16,
-    // marginVertical: 8,
+    // Optional: Passe die Styles nach Bedarf an
   },
   container: {
     padding: 0,

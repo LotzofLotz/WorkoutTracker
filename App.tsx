@@ -113,7 +113,7 @@ const App = (): React.JSX.Element => {
       if (typeof countdown === 'number' && countdown > 1) {
         timer = setTimeout(() => {
           setCountdown(countdown - 1);
-        }, 1000);
+        }, 800);
       } else if (countdown === 1) {
         timer = setTimeout(() => {
           setCountdown('GO');
@@ -124,7 +124,7 @@ const App = (): React.JSX.Element => {
           setTimeout(() => {
             setCanStop(true);
           }, 3000);
-        }, 1000);
+        }, 600);
       }
     }
     return () => {

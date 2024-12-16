@@ -182,7 +182,6 @@ const SavedSetsComponent: React.FC<SavedSetsComponentProps> = ({sets}) => {
               accessor="population"
               backgroundColor="transparent"
               paddingLeft="15"
-              absolute
               style={styles.pieChart}
             />
           </View>
@@ -225,7 +224,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 15,
-    paddingBottom: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
     width: '100%',
   },
   exerciseLabel: {

@@ -198,9 +198,9 @@ export function findPeaks(
   indices = filterMaxima(indices, data, distance, height, prominence);
 
   // Neue Bedingung hinzufügen
-  // Wenn der erste Peak-Index größer als 7 ist, prüfen wir die ersten 7 Datenpunkte
-  if (indices.length > 0 && indices[0] > 7) {
-    const numPointsToCheck = 7; // Anzahl der zu prüfenden Datenpunkte
+  // Wenn der erste Peak-Index größer als 7 ist, prüfen wir die ersten 7 Datenpunkte => neu: 10
+  if (indices.length > 0 && indices[0] > 15) {
+    const numPointsToCheck = 15; // Anzahl der zu prüfenden Datenpunkte
     let significantDifferenceFound = false;
 
     // Prüfen, ob die Differenz zwischen zwei beliebigen Punkten größer als 1 ist
@@ -221,8 +221,8 @@ export function findPeaks(
       indices.unshift(0); // Index 0 am Anfang des Arrays einfügen
     }
   }
-  if (indices.length > 0 && data.length - indices[indices.length - 1] > 7) {
-    const numPointsToCheck = 7;
+  if (indices.length > 0 && data.length - indices[indices.length - 1] > 15) {
+    const numPointsToCheck = 15;
     const startIdx = data.length - numPointsToCheck;
     let significantDifferenceFound = false;
 

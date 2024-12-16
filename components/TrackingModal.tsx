@@ -47,7 +47,6 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
   avgSecondPartTime,
   peaks,
   quality,
-  predictions,
   onSaveAndClose,
 }) => {
   const [adjustedReps, setAdjustedReps] = useState<number>(predReps);
@@ -287,8 +286,8 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
                 data={data}
                 maxValue={100}
                 gradientColor={{
-                  startColor: Colors.secondary, // Verwende die 'secondary' Farbe
-                  endColor: '#FFFFFF', // Übergang zu Weiß
+                  startColor: Colors.secondary,
+                  endColor: '#FFFFFF',
                   count: 5,
                 }}
                 stroke={[
@@ -399,7 +398,7 @@ const TrackingModal: React.FC<TrackingModalProps> = ({
             </Modal>
 
             <View style={styles.repsAdjustContainer}>
-              <Text style={styles.repsLabel}>REPS:</Text>
+              {/* <Text style={styles.repsLabel}>REPS:</Text> */}
               <View style={styles.adjustButtons}>
                 <TouchableOpacity
                   style={styles.adjustButton}
@@ -433,13 +432,14 @@ const styles = StyleSheet.create({
   adjustButton: {
     alignItems: 'center',
     backgroundColor: Colors.primary,
-    borderRadius: 5,
+    borderRadius: 20,
     height: 80,
     justifyContent: 'center',
     padding: 10,
     width: 80,
   },
   adjustButtonText: {
+    bottom: 4,
     color: Colors.background,
     fontSize: 44,
     fontWeight: 'bold',
@@ -459,12 +459,13 @@ const styles = StyleSheet.create({
   chartContainer: {
     alignItems: 'center',
     marginBottom: -20,
+    marginTop: -10,
     width: '100%',
   },
   dropdownButton: {
     alignItems: 'center',
     backgroundColor: Colors.primary,
-    borderRadius: 12,
+    borderRadius: 20,
     height: 80,
     justifyContent: 'center',
     paddingHorizontal: 15,
@@ -502,12 +503,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   modal: {
-    justifyContent: 'flex-end',
+    // justifyContent: 'flex-end',
     margin: 0,
   },
   modalBody: {
     alignItems: 'center',
-    padding: 20,
+    // padding: 20,
   },
   modalContent: {
     alignItems: 'center',
@@ -517,42 +518,42 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     width: '100%',
   },
-  noTagsText: {
-    color: Colors.textSecondary,
-    fontSize: 18,
-  },
-  primaryTagItem: {
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: 10,
-    margin: 5,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  primaryTagText: {
-    color: Colors.background,
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
+  // noTagsText: {
+  //   color: Colors.textSecondary,
+  //   fontSize: 18,
+  // },
+  // primaryTagItem: {
+  //   alignItems: 'center',
+  //   backgroundColor: Colors.primary,
+  //   borderRadius: 10,
+  //   margin: 5,
+  //   paddingHorizontal: 20,
+  //   paddingVertical: 10,
+  // },
+  // primaryTagText: {
+  //   color: Colors.background,
+  //   fontSize: 24,
+  //   fontWeight: 'bold',
+  // },
   repsAdjustContainer: {
     alignItems: 'center',
     marginTop: 15,
   },
-  repsLabel: {
-    color: Colors.textSecondary,
-    fontSize: 16,
-    marginRight: 10,
-  },
+  // repsLabel: {
+  //   color: Colors.textSecondary,
+  //   fontSize: 16,
+  //   marginRight: 10,
+  // },
   resultsContainer: {
     alignItems: 'center',
-    marginTop: 10,
-    paddingBottom: 20,
+    marginTop: 28,
+
     width: '100%',
   },
   saveButton: {
     alignItems: 'center',
     backgroundColor: Colors.secondary,
-    borderRadius: 25,
+    borderRadius: 20,
     elevation: 5,
     height: 80,
     justifyContent: 'center',
@@ -564,55 +565,55 @@ const styles = StyleSheet.create({
   },
   saveButtonContainer: {
     alignSelf: 'center',
-    marginTop: 20,
+    marginTop: 15,
   },
   saveButtonText: {
     color: Colors.background,
     fontSize: 34,
     fontWeight: 'bold',
   },
-  scoreText: {
-    color: Colors.textSecondary,
-    fontSize: 18,
-    marginVertical: 2,
-  },
-  scoresContainer: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  scoresTitle: {
-    color: Colors.textSecondary,
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  tagItem: {
-    backgroundColor: Colors.primary,
-    borderRadius: 10,
-    margin: 5,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-  },
-  tagText: {
-    color: Colors.background,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  tagsContainer: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  tagsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  tagsTitle: {
-    color: Colors.textSecondary,
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
+  // scoreText: {
+  //   color: Colors.textSecondary,
+  //   fontSize: 18,
+  //   marginVertical: 2,
+  // },
+  // scoresContainer: {
+  //   alignItems: 'center',
+  //   marginTop: 20,
+  // },
+  // scoresTitle: {
+  //   color: Colors.textSecondary,
+  //   fontSize: 24,
+  //   fontWeight: 'bold',
+  //   marginBottom: 10,
+  // },
+  // tagItem: {
+  //   backgroundColor: Colors.primary,
+  //   borderRadius: 10,
+  //   margin: 5,
+  //   paddingHorizontal: 15,
+  //   paddingVertical: 8,
+  // },
+  // tagText: {
+  //   color: Colors.background,
+  //   fontSize: 18,
+  //   fontWeight: 'bold',
+  // },
+  // tagsContainer: {
+  //   alignItems: 'center',
+  //   marginTop: 20,
+  // },
+  // tagsList: {
+  //   flexDirection: 'row',
+  //   flexWrap: 'wrap',
+  //   justifyContent: 'center',
+  // },
+  // tagsTitle: {
+  //   color: Colors.textSecondary,
+  //   fontSize: 24,
+  //   fontWeight: 'bold',
+  //   marginBottom: 10,
+  // },
 });
 
 export default TrackingModal;

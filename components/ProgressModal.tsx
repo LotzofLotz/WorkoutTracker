@@ -77,10 +77,16 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
   const getChartData = useMemo(() => {
     const data = calculateRepsPerDay(selectedStat);
 
-    // Labels based on sorted dates
-    const labels = sortedDates.map(date => {
+    // Determine step for labels to avoid overlap
+    const maxLabels = 10; // Maximum number of labels to display
+    const totalLabels = sortedDates.length;
+    const step =
+      totalLabels > maxLabels ? Math.ceil(totalLabels / maxLabels) : 1;
+
+    // Labels based on sorted dates with step
+    const labels = sortedDates.map((date, index) => {
       const [day, month] = date.split('.');
-      return `${day}.${month}`;
+      return index % step === 0 ? `${day}.${month}` : '';
     });
 
     return {
@@ -174,11 +180,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
-    paddingVertical: 15,
+    paddingVertical: 25,
   },
   chartContainer: {
     alignItems: 'center',
     marginTop: 20,
+    right: 15,
     width: '100%',
   },
   lineChartStyle: {
