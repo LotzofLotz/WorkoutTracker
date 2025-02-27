@@ -26,7 +26,7 @@ This project explores the use of **deep learning and smartphone sensors** (accel
 - **Model Deployment:** The trained model is converted to **TFLite** for real-time smartphone inference.
 
 ## 🚀 **How It Works**
-1. **Start Workout**: The user presses "Start" to begin a set.
+1. **Start Workout**: The user presses "Start" to begin a set and performs the exercise.
 2. **Sensor Recording**: The app collects **accelerometer data** during movement.
 3. **Repetition Detection**: A peak detection algorithm segments the repetitions.
 4. **Exercise Classification**: The CNN model predicts the **exercise type**.
