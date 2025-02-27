@@ -12,9 +12,9 @@ This project explores the use of **deep learning and smartphone sensors** (accel
 ## 📷 **Screenshots**
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/08074db6-5b08-4d83-98a4-c67a034fc3eb" width="30%">
-  <img src="https://github.com/user-attachments/assets/89775498-5c81-42d4-bebb-d93eda834e6f" width="30%">
-  <img src="https://github.com/user-attachments/assets/8e997d91-cc5b-4c55-a06d-5ac97fec704d" width="30%">
+  <img src="https://github.com/user-attachments/assets/08074db6-5b08-4d83-98a4-c67a034fc3eb" width="20%">
+  <img src="https://github.com/user-attachments/assets/89775498-5c81-42d4-bebb-d93eda834e6f" width="20%">
+  <img src="https://github.com/user-attachments/assets/8e997d91-cc5b-4c55-a06d-5ac97fec704d" width="20%">
 </p>
 
 
