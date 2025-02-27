@@ -1,3 +1,5 @@
+This project explores the use of **deep learning and smartphone sensors** (accelerometer) for real-time detection and repetition counting of **bodyweight exercises** directly on a smartphone. The developed model is optimized for **on-device inference** using **TensorFlow Lite (TFLite)**. The app is capable of accurately counting, recognizing and automatically tracking bodyweight exercises.  
+
 ## 🎯 **Key Features**
 - 📱 **Smartphone-Based Exercise Tracking** – No need for external wearables.
 - 🏋️ **Detection of 4 Exercises** – Recognizes **Push-Ups, Pull-Ups, Squats, and Sit-Ups**.
