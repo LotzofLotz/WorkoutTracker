@@ -9,6 +9,15 @@ This project explores the use of **deep learning and smartphone sensors** (accel
 - 📊 **Workout Tracking & History** – Stores previous workout data for progress monitoring.
 - 🏆 **Workout Quality Scoring** – Evaluates consistency, control, explosiveness, stamina, and power.
 
+## 📷 **Screenshots**
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/08074db6-5b08-4d83-98a4-c67a034fc3eb" width="30%">
+  <img src="https://github.com/user-attachments/assets/89775498-5c81-42d4-bebb-d93eda834e6f" width="30%">
+  <img src="https://github.com/user-attachments/assets/8e997d91-cc5b-4c55-a06d-5ac97fec704d" width="30%">
+</p>
+
+
 ## 🏗 **Technical Details**
 - **Sensor Data:** The app collects **accelerometer data** from a smartphone worn on the **upper arm**.
 - **Preprocessing:** The raw data undergoes **smoothing, normalization, and PCA transformation**.
