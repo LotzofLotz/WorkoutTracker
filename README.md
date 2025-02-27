@@ -22,4 +22,4 @@
 5. **Results & Feedback**:
    - The user gets **repetition count & detected exercise**.
    - The **workout quality score** provides feedback on form and performance.
-6. **Data Storage**: The set is saved for **progress track
+6. **Data Storage**: The set is saved for **progress tracking**
